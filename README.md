@@ -68,7 +68,7 @@ src/
 ### 1️⃣ Clone Repository
 
 ```bash
-git clone https://github.com/your-username/shophub-frontend.git
+git clone https://github.com/kapilkumar12/ShopHub.git
 cd shophub-frontend
 ```
 
