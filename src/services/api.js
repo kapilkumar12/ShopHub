@@ -1,7 +1,12 @@
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
+const navigate = useNavigate();
+
+const BASE_URL = "https://shophub-backend-ee64.onrender.com/api";
 
 const API = axios.create({
-  baseURL: "https://shophub-backend-ee64.onrender.com/api",
+  baseURL: BASE_URL,
   withCredentials: true,
 });
 
@@ -31,9 +36,8 @@ API.interceptors.response.use(
 
     // ❌ skip auth routes
     const isAuthRoute =
-      originalRequest.url.includes("/auth/login") ||
-      originalRequest.url.includes("/auth/refresh") ||
-      originalRequest.url.includes("/auth/me");
+      originalRequest?.url?.includes("/auth/login") ||
+      originalRequest?.url?.includes("/auth/refresh");
 
     if (
       error.response?.status === 401 &&
@@ -44,7 +48,7 @@ API.interceptors.response.use(
 
       try {
         const res = await axios.get(
-          "https://shophub-backend-ee64.onrender.com/api/auth/refresh",
+          `${BASE_URL}/auth/refresh`,
           { withCredentials: true }
         );
 
@@ -58,7 +62,7 @@ API.interceptors.response.use(
 
       } catch (err) {
         localStorage.removeItem("accessToken");
-        window.location.href = "/";
+        navigate("/")
       }
     }
 

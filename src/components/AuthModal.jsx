@@ -1,7 +1,6 @@
 import { useState,useEffect } from "react";
 import { loginUser,registerUser } from "../services/auth";
 import Swal from "sweetalert2";
-import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function AuthModal({
@@ -16,9 +15,6 @@ export default function AuthModal({
   const [password,setPassword] = useState("");
   const [loading,setLoading] = useState(false);
 
-  const navigate = useNavigate();
-
-  const { fetchUser,user } = useAuth();
 
   if (!isOpen) return null;
 
