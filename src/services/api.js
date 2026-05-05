@@ -1,7 +1,4 @@
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
-
-const navigate = useNavigate();
 
 const BASE_URL = "https://shophub-backend-ee64.onrender.com/api";
 
@@ -47,10 +44,9 @@ API.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const res = await axios.get(
-          `${BASE_URL}/auth/refresh`,
-          { withCredentials: true }
-        );
+        const res = await axios.get(`${BASE_URL}/auth/refresh`, {
+          withCredentials: true,
+        });
 
         const newToken = res.data.accessToken;
 
@@ -59,15 +55,17 @@ API.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
         return API(originalRequest);
-
       } catch (err) {
+        
         localStorage.removeItem("accessToken");
-        navigate("/")
+        window.dispatchEvent(new Event("unauthorized"));
+
+        return Promise.reject(err);
       }
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default API;
