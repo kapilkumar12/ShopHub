@@ -82,6 +82,17 @@ export default function Navbar() {
 
   };
 
+  const handleEnterSearch = () => {
+    if (!search.trim()) return;
+
+    navigate(`/products?search=${encodeURIComponent(search)}`);
+
+    // 🔥 CLEAR EVERYTHING (same as select)
+    setSearch("");
+    setResults([]);
+    setShowDropdown(false);
+  };
+
   // 🚪 Logout (FIXED)
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -145,6 +156,11 @@ export default function Navbar() {
             value={search}
             onChange={handleSearchChange}
             onFocus={() => search && setShowDropdown(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleEnterSearch();
+              }
+            }}
             className="w-full px-4 py-2 border rounded-lg"
           />
 
