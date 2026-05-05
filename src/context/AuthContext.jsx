@@ -17,12 +17,13 @@ export const AuthProvider = ({ children }) => {
 
       if (!token) {
         setUser(null);
-        setLoading(false);
         return;
       }
 
       const res = await API.get("/auth/me");
-      setUser(res.data.user);
+      const userData = res.data.user || res.data;
+
+      setUser(userData);
 
     } catch (error) {
       setUser(null);
@@ -34,6 +35,19 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     fetchUser();
   },[]);
+
+    useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      localStorage.removeItem("accessToken");
+    };
+
+    window.addEventListener("unauthorized", handleUnauthorized);
+
+    return () => {
+      window.removeEventListener("unauthorized", handleUnauthorized);
+    };
+  }, []);
 
   // 🔥 logout
   const logout = async () => {

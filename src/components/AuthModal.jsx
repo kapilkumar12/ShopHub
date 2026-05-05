@@ -1,7 +1,6 @@
-import { useState,useEffect } from "react";
-import { loginUser,registerUser } from "../services/auth";
+import { useState } from "react";
+import { loginUser, registerUser } from "../services/auth";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function AuthModal({
@@ -15,7 +14,7 @@ export default function AuthModal({
   const [email,setEmail] = useState("");
   const [password,setPassword] = useState("");
   const [loading,setLoading] = useState(false);
-  const { setUser } = useAuth();
+  const { setUser, fetchUser } = useAuth();
 
   if (!isOpen) return null;
 
@@ -44,7 +43,7 @@ export default function AuthModal({
 
         setUser(res.data.user);
 
-        console.log("setUser", res.data.user)
+        await fetchUser();
 
         await Swal.fire({
           icon: "success",
