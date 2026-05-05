@@ -20,12 +20,6 @@ export default function AuthModal({
 
   const { fetchUser,user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      onClose(); 
-    }
-  },[user]);
-
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
