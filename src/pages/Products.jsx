@@ -51,6 +51,19 @@ export default function Products() {
     return () => clearTimeout(delay);
   },[fetchProducts]);
 
+
+  useEffect(() => {
+    // agar search empty hai to kuch mat karo
+    if (!search) return;
+
+    // 🔥 reset all filters
+    setCategory("");
+    setPriceRange(200000);
+    setSort("");
+    setPage(1);
+
+  },[search]);
+
   ////////////////////////////////////////////////////////////////
   // UI
   ////////////////////////////////////////////////////////////////
@@ -76,14 +89,14 @@ export default function Products() {
 
             {categories.map((cat,i) => (
               <p key={i}>
-              <label>
-                <input
-                  type="radio"
-                  value={cat}
-                  checked={category === cat}
-                  onChange={(e) => setCategory(e.target.value)}
-                /> {cat}
-              </label>
+                <label>
+                  <input
+                    type="radio"
+                    value={cat}
+                    checked={category === cat}
+                    onChange={(e) => setCategory(e.target.value)}
+                  /> {cat}
+                </label>
               </p>
             ))}
 
