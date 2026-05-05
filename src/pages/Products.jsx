@@ -2,6 +2,7 @@ import { useEffect,useState,useCallback } from "react";
 import { productFilter as filterAPI } from "../services/product";
 import ProductCard from "../components/ProductCard";
 import { useSearch } from "../context/SearchContext";
+import { useLocation } from "react-router-dom";
 
 export default function Products() {
   const [products,setProducts] = useState([]);
@@ -15,6 +16,11 @@ export default function Products() {
   const [sort,setSort] = useState("");
   const [page,setPage] = useState(1);
 
+  const location = useLocation();
+
+  const queryParams = new URLSearchParams(location.search);
+  const urlSearch = queryParams.get("search") || "";
+
   ////////////////////////////////////////////////////////////////
   // 🔥 FETCH (ONLY ONE API)
   ////////////////////////////////////////////////////////////////
@@ -23,12 +29,12 @@ export default function Products() {
       setLoading(true);
 
       const data = await filterAPI({
-        search,
-        category,
-        sort,
-        minPrice: 0,
-        maxPrice: priceRange,
-        page,
+        search: urlSearch || search,
+        category: search ? "" : category,
+        sort: search ? "" : sort,
+        minPrice: search ? 0 : 0,
+        maxPrice: search ? 200000 : priceRange,
+        page
       });
 
       // ✅ directly use API response
@@ -82,6 +88,7 @@ export default function Products() {
             <p>
               <input
                 type="radio"
+                disabled={!!search}
                 checked={category === ""}
                 onChange={() => setCategory("")}
               /> All
@@ -92,6 +99,7 @@ export default function Products() {
                 <label>
                   <input
                     type="radio"
+                    disabled={!!search}
                     value={cat}
                     checked={category === cat}
                     onChange={(e) => setCategory(e.target.value)}

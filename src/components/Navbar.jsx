@@ -74,9 +74,12 @@ export default function Navbar() {
   };
 
   const handleSelect = (value) => {
-    setSearch(value);
-    navigate("/products");
+
+    navigate(`/products?search=${encodeURIComponent(value)}`);
+    setSearch("");
+    setResults([]);
     setShowDropdown(false);
+
   };
 
   // 🚪 Logout (FIXED)
@@ -108,7 +111,7 @@ export default function Navbar() {
 
   useEffect(() => {
     if (user) {
-      fetchCartCount(); 
+      fetchCartCount();
       fetchWishlistCount();// login
     } else {
       fetchCartCount();
