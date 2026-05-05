@@ -134,6 +134,7 @@ export default function ProductCard({ product }) {
             alt={product?.name}
             onClick={() => navigate(`/product/${product._id}`)}
             className="max-h-full max-w-full object-contain transition group-hover:scale-105"
+            loading="lazy"
           />
         ) : (
           <span>No Image</span>

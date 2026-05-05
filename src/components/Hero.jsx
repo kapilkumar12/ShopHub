@@ -50,7 +50,7 @@ export default function HeroSlider() {
         >
           <img
             src={slide?.image[0]?.url}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover" loading="lazy"
           />
 
           {/* Overlay */}

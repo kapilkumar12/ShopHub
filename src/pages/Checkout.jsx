@@ -272,7 +272,7 @@ export default function Checkout() {
                   <img
                     src={p.images?.[0]?.url}
                     className="w-16 h-16 object-cover rounded"
-                    alt={p.name}
+                    alt={p.name} loading="lazy"
                   />
 
                   <div className="flex-1">

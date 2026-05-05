@@ -214,6 +214,7 @@ export default function Cart() {
                 <img
                   src={p.images?.[0]?.url}
                   className="w-24 h-24 object-cover rounded"
+                  loading="lazy"
                 />
 
                 <div>

@@ -7,6 +7,7 @@ export default function CategoryCard({ name, image }) {
         src={image}
         alt={name}
         className="w-16 h-16 mx-auto object-contain"
+        loading="lazy"
       />
       <p className="mt-2 font-medium">{name}</p>
     </div>

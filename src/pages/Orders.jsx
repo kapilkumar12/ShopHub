@@ -83,7 +83,7 @@ export default function Orders() {
             {/* Top Row */}
             <div className="flex justify-between items-center mb-3">
                <div>
-                <img src={order.items?.[0]?.productId?.images?.[0]?.url} alt="Product image" className="w-16 h-16 object-cover rounded"/>
+                <img src={order.items?.[0]?.productId?.images?.[0]?.url} alt="Product image" className="w-16 h-16 object-cover rounded" loading="lazy"/>
                 </div> 
               <div>
                 <p className="text-sm text-gray-500">

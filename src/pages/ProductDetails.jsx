@@ -215,13 +215,14 @@ export default function ProductDetails() {
                 src={img.url}
                 onMouseEnter={() => setSelectedImage(img.url)}
                 className="w-16 h-16 border cursor-pointer"
+                loading="lazy"
               />
             ))}
           </div>
 
           {/* MAIN IMAGE */}
           <div className="order-1 lg:order-2 bg-gray-100 h-[350px] flex items-center justify-center">
-            <img src={selectedImage} className="max-h-full" />
+            <img src={selectedImage} className="max-h-full" loading="lazy"/>
           </div>
         </div>
 
@@ -339,7 +340,7 @@ export default function ProductDetails() {
 
           return (
             <div key={i} className="border-b py-4 flex gap-3">
-              <img src={avatar} className="w-10 h-10 rounded-full" />
+              <img src={avatar} className="w-10 h-10 rounded-full" loading="lazy"/>
 
               <div>
                 <p className="font-semibold text-sm">{userName}</p>

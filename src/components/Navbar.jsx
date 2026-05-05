@@ -130,7 +130,7 @@ export default function Navbar() {
           </button>
 
           <Link to="/">
-            <img src={Logo} alt="logo" className="w-18" />
+            <img src={Logo} alt="logo" className="w-18" loading="lazy" />
           </Link>
         </div>
 

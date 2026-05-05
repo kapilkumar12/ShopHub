@@ -29,7 +29,7 @@ export default function OrderDetails() {
 
       setOrder(orderRes.order);
 
-      console.log("setOrder", orderRes.order)
+      console.log("setOrder",orderRes.order)
 
       setTracking(trackingRes.data.tracking || []);
     } catch (err) {
@@ -217,7 +217,7 @@ export default function OrderDetails() {
             key={index}
             className="flex justify-between border-b py-2 gap-3 items-center"
           >
-            <img src={item?.productId?.images[0]?.url} alt={item?.productId?.name} className="w-16 h-16 object-cover rounded"/>
+            <img src={item?.productId?.images[0]?.url} alt={item?.productId?.name} className="w-16 h-16 object-cover rounded" loading="lazy" />
             <span>
               {item.name} x {item.quantity}
             </span>
