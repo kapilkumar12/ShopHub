@@ -75,14 +75,14 @@ export default function Products() {
             </p>
 
             {categories.map((cat,i) => (
-              <p key={i}>
+              <label key={i}>
                 <input
                   type="radio"
                   value={cat}
                   checked={category === cat}
                   onChange={(e) => setCategory(e.target.value)}
                 /> {cat}
-              </p>
+              </label>
             ))}
 
           </div>
