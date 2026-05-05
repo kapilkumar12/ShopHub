@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { loginUser,registerUser } from "../services/auth";
 import Swal from "sweetalert2";
 import { useAuth } from "../context/AuthContext";
@@ -15,7 +15,13 @@ export default function AuthModal({
   const [password,setPassword] = useState("");
   const [loading,setLoading] = useState(false);
 
-  const { fetchUser } = useAuth();
+  const { fetchUser,user} = useAuth();
+
+       useEffect(() => {
+        if (user) {
+            navigate("/");
+        }
+    },[user]);
 
   if (!isOpen) return null;
 
@@ -39,6 +45,8 @@ export default function AuthModal({
         openOTP(email);
       } else {
         await loginUser({ email,password });
+
+        localStorage.setItem("accessToken",res.data.accessToken);
 
         // 🔥 FIX: refresh global user
         await fetchUser();
