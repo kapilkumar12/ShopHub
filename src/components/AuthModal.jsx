@@ -44,6 +44,8 @@ export default function AuthModal({
 
         setUser(res.data.user);
 
+        console.log("setUser", res.data.user)
+
         await Swal.fire({
           icon: "success",
           title: "Login successful",
