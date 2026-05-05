@@ -10,7 +10,7 @@ export default function Products() {
   const [loading,setLoading] = useState(true);
 
   // filters
-  const { search } = useSearch();
+  const { search, setSearch } = useSearch();
   const [category,setCategory] = useState("");
   const [priceRange,setPriceRange] = useState(200000);
   const [sort,setSort] = useState("");
@@ -24,6 +24,10 @@ export default function Products() {
   const urlSearch = queryParams.get("search") || "";
   const urlCategory = queryParams.get("category") || "";
 
+    useEffect(() => {
+    setCategory(urlCategory);
+  }, [urlCategory]);
+
   ////////////////////////////////////////////////////////////////
   // 🔥 FETCH (ONLY ONE API)
   ////////////////////////////////////////////////////////////////
@@ -32,8 +36,8 @@ export default function Products() {
       setLoading(true);
 
       const data = await filterAPI({
-        search: urlCategory ? "" : urlSearch,
-        category: urlCategory,
+        search: category ? "" : urlSearch,
+        category: category,
         sort,
         minPrice: 0,
         maxPrice: priceRange,
@@ -50,7 +54,7 @@ export default function Products() {
     } finally {
       setLoading(false);
     }
-  },[urlSearch,urlCategory,priceRange,page,sort]);
+  },[urlSearch,category,priceRange,page,sort]);
 
   ////////////////////////////////////////////////////////////////
   // AUTO FETCH
@@ -64,6 +68,7 @@ export default function Products() {
   useEffect(() => {
 
     if (!urlSearch) return;
+    setCategory("");
     setPriceRange(200000);
     setSort("");
     setPage(1);
@@ -73,6 +78,7 @@ export default function Products() {
 
   const handleCategoryChange = (cat) => {
     setSearch("");
+    setCategory(cat);
     if (!cat) {
       navigate("/products"); // reset
     } else {
@@ -103,7 +109,7 @@ export default function Products() {
             <p>
               <input
                 type="radio"
-                checked={urlCategory === ""}
+                checked={category === ""}
                 onChange={() => handleCategoryChange("")}
               /> All
             </p>
@@ -114,7 +120,7 @@ export default function Products() {
                   <input
                     type="radio"
                     value={cat}
-                    checked={urlCategory === cat}
+                    checked={category === cat}
                     onChange={() => handleCategoryChange(cat)}
                   /> {cat}
                 </label>
