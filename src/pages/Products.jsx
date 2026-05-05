@@ -75,7 +75,8 @@ export default function Products() {
             </p>
 
             {categories.map((cat,i) => (
-              <label key={i}>
+              <p key={i}>
+              <label>
                 <input
                   type="radio"
                   value={cat}
@@ -83,6 +84,7 @@ export default function Products() {
                   onChange={(e) => setCategory(e.target.value)}
                 /> {cat}
               </label>
+              </p>
             ))}
 
           </div>
