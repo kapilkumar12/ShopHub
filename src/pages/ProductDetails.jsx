@@ -221,7 +221,7 @@ export default function ProductDetails() {
           </div>
 
           {/* MAIN IMAGE */}
-          <div className="order-1 lg:order-2 bg-gray-100 h-[350px] flex items-center justify-center">
+          <div className="order-1 lg:order-2 bg-gray-100 h-87.5 flex items-center justify-center">
             <img src={selectedImage} className="max-h-full" loading="lazy"/>
           </div>
         </div>

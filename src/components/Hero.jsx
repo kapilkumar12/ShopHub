@@ -32,14 +32,14 @@ export default function HeroSlider() {
 
   if (!Array.isArray(slides) || slides.length === 0) {
     return (
-      <div className="h-[300px] flex items-center justify-center">
+      <div className="h-75 flex items-center justify-center">
         Loading...
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-[300px] md:h-[400px] overflow-hidden rounded-xl">
+    <div className="relative w-full h-75 md:h-100 overflow-hidden rounded-xl">
 
       {/* Slides */}
       {slides.map((slide,index) => (

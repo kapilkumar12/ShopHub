@@ -109,7 +109,7 @@ export default function AuthModal({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full py-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 font-semibold hover:opacity-90 transition cursor-pointer"
+            className="w-full py-3 rounded-lg bg-linear-to-r from-blue-500 to-indigo-500 font-semibold hover:opacity-90 transition cursor-pointer"
           >
             {loading
               ? "Please wait..."
