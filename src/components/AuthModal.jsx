@@ -2,6 +2,7 @@ import { useState,useEffect } from "react";
 import { loginUser,registerUser } from "../services/auth";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function AuthModal({
   isOpen,
@@ -14,7 +15,7 @@ export default function AuthModal({
   const [email,setEmail] = useState("");
   const [password,setPassword] = useState("");
   const [loading,setLoading] = useState(false);
-
+  const { setUser } = useAuth();
 
   if (!isOpen) return null;
 
@@ -40,6 +41,8 @@ export default function AuthModal({
         const res = await loginUser({ email,password });
 
         localStorage.setItem("accessToken",res.data.accessToken);
+
+        setUser(res.data.user);
 
         await Swal.fire({
           icon: "success",
