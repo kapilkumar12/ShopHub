@@ -19,7 +19,7 @@ export default function Products() {
   const location = useLocation();
 
   const queryParams = new URLSearchParams(location.search);
-  const search = queryParams.get("search") || "";
+  const urlSearch = queryParams.get("search") || "";
 
   ////////////////////////////////////////////////////////////////
   // 🔥 FETCH (ONLY ONE API)
@@ -29,7 +29,7 @@ export default function Products() {
       setLoading(true);
 
       const data = await filterAPI({
-        search: category ? "" : search,
+        search: category ? "" : urlSearch,
         category: search ? "" : category,
         sort: search ? "" : sort,
         minPrice: search ? 0 : 0,
