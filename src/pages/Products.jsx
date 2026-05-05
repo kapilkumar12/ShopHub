@@ -20,7 +20,9 @@ export default function Products() {
   const navigate = useNavigate();
 
   const queryParams = new URLSearchParams(location.search);
+
   const urlSearch = queryParams.get("search") || "";
+  const urlCategory = queryParams.get("category") || "";
 
   ////////////////////////////////////////////////////////////////
   // 🔥 FETCH (ONLY ONE API)
@@ -30,11 +32,11 @@ export default function Products() {
       setLoading(true);
 
       const data = await filterAPI({
-        search: category ? "" : urlSearch,
-        category: search ? "" : category,
-        sort: search ? "" : sort,
-        minPrice: search ? 0 : 0,
-        maxPrice: search ? 200000 : priceRange,
+        search: urlSearch,
+        category: urlCategory,
+        sort,
+        minPrice: 0,
+        maxPrice: priceRange,
         page
       });
 
@@ -60,16 +62,27 @@ export default function Products() {
 
 
   useEffect(() => {
-    // agar search empty hai to kuch mat karo
-    if (!search) return;
 
-    // 🔥 reset all filters
-    setCategory("");
+    if (!urlSearch) return;
     setPriceRange(200000);
     setSort("");
     setPage(1);
 
-  },[search]);
+  },[urlSearch]);
+
+
+  const handleCategoryChange = (cat) => {
+    if (!cat) {
+      navigate("/products"); // reset
+    } else {
+      navigate(`/products?category=${encodeURIComponent(cat)}`);
+    }
+  };
+
+  const handleSortChange = (value) => {
+    setSort(value);
+  };
+
 
   ////////////////////////////////////////////////////////////////
   // UI
@@ -89,9 +102,9 @@ export default function Products() {
             <p>
               <input
                 type="radio"
-                disabled={!!search}
-                checked={category === ""}
-                onChange={() => setCategory("")}
+                disabled={!!urlSearch}
+                checked={urlCategory === ""}
+                onChange={() => handleCategoryChange("")}
               /> All
             </p>
 
@@ -100,18 +113,10 @@ export default function Products() {
                 <label>
                   <input
                     type="radio"
-                    disabled={!!search}
+                    disabled={!!urlSearch}
                     value={cat}
-                    checked={category === cat}
-                    onChange={(e) => {
-                      const selectedCategory = e.target.value;
-
-                      setCategory(selectedCategory);
-                      setSearch("");
-
-                      // 🔥 REMOVE search from URL
-                      navigate(`/products?category=${selectedCategory}`);
-                    }}
+                    checked={urlCategory === cat}
+                    onChange={() => handleCategoryChange(cat)}
                   /> {cat}
                 </label>
               </p>
@@ -138,7 +143,7 @@ export default function Products() {
 
           <select
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
+            onChange={(e) => handleSortChange(e.target.value)}
             className="w-full p-2 border rounded mt-1"
           >
             <option value="">Default</option>
@@ -151,7 +156,11 @@ export default function Products() {
 
       {/* PRODUCTS */}
       <div className="md:col-span-3">
-        <h2 className="text-2xl font-bold mb-4">All Products</h2>
+        <h2 className="text-2xl font-bold mb-4">{urlSearch
+          ? `Search Results for "${urlSearch}"`
+          : urlCategory
+            ? `${urlCategory} Products`
+            : "All Products"}</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
