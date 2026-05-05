@@ -32,7 +32,7 @@ export default function Products() {
       setLoading(true);
 
       const data = await filterAPI({
-        search: urlSearch,
+        search: urlCategory ? "" : urlSearch,
         category: urlCategory,
         sort,
         minPrice: 0,
@@ -50,7 +50,7 @@ export default function Products() {
     } finally {
       setLoading(false);
     }
-  },[search,category,priceRange,page,sort]);
+  },[urlSearch,urlCategory,priceRange,page,sort]);
 
   ////////////////////////////////////////////////////////////////
   // AUTO FETCH
@@ -72,6 +72,7 @@ export default function Products() {
 
 
   const handleCategoryChange = (cat) => {
+    setSearch("");
     if (!cat) {
       navigate("/products"); // reset
     } else {
@@ -102,7 +103,6 @@ export default function Products() {
             <p>
               <input
                 type="radio"
-                disabled={!!urlSearch}
                 checked={urlCategory === ""}
                 onChange={() => handleCategoryChange("")}
               /> All
@@ -113,7 +113,6 @@ export default function Products() {
                 <label>
                   <input
                     type="radio"
-                    disabled={!!urlSearch}
                     value={cat}
                     checked={urlCategory === cat}
                     onChange={() => handleCategoryChange(cat)}
@@ -156,11 +155,13 @@ export default function Products() {
 
       {/* PRODUCTS */}
       <div className="md:col-span-3">
-        <h2 className="text-2xl font-bold mb-4">{urlSearch
-          ? `Search Results for "${urlSearch}"`
-          : urlCategory
-            ? `${urlCategory} Products`
-            : "All Products"}</h2>
+        <h2 className="text-2xl font-bold mb-4">
+          {urlSearch
+            ? `Search Results for "${urlSearch}"`
+            : urlCategory
+              ? `${urlCategory} Products`
+              : "All Products"}
+        </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
