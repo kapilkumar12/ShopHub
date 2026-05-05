@@ -12,6 +12,7 @@ export default function Products() {
   const { search } = useSearch();
   const [category,setCategory] = useState("");
   const [priceRange,setPriceRange] = useState(200000);
+  const [sort,setSort] = useState("");
   const [page,setPage] = useState(1);
 
   ////////////////////////////////////////////////////////////////
@@ -24,6 +25,7 @@ export default function Products() {
       const data = await filterAPI({
         search,
         category,
+        sort,
         minPrice: 0,
         maxPrice: priceRange,
         page,
@@ -39,7 +41,7 @@ export default function Products() {
     } finally {
       setLoading(false);
     }
-  },[search,category,priceRange,page]);
+  },[search,category,priceRange,page,sort]);
 
   ////////////////////////////////////////////////////////////////
   // AUTO FETCH
@@ -98,6 +100,20 @@ export default function Products() {
             className="w-full"
           />
           <p className="text-sm">Up to ₹{priceRange}</p>
+        </div>
+        <div>
+          <p className="font-medium">Sort By</p>
+
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="w-full p-2 border rounded mt-1"
+          >
+            <option value="">Default</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="latest">Latest</option>
+          </select>
         </div>
       </div>
 
