@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState,useEffect } from "react";
 import { loginUser,registerUser } from "../services/auth";
 import Swal from "sweetalert2";
 import { useAuth } from "../context/AuthContext";
@@ -18,13 +18,13 @@ export default function AuthModal({
 
   const navigate = useNavigate();
 
-  const { fetchUser,user} = useAuth();
+  const { fetchUser,user } = useAuth();
 
-       useEffect(() => {
-        if (user) {
-            navigate("/");
-        }
-    },[user]);
+  useEffect(() => {
+    if (user) {
+      onClose(); 
+    }
+  },[user]);
 
   if (!isOpen) return null;
 
@@ -47,12 +47,9 @@ export default function AuthModal({
         });
         openOTP(email);
       } else {
-       const res = await loginUser({ email,password });
+        const res = await loginUser({ email,password });
 
         localStorage.setItem("accessToken",res.data.accessToken);
-
-        // 🔥 FIX: refresh global user
-        await fetchUser();
 
         await Swal.fire({
           icon: "success",
