@@ -2,7 +2,7 @@ import { useEffect,useState,useCallback } from "react";
 import { productFilter as filterAPI } from "../services/product";
 import ProductCard from "../components/ProductCard";
 import { useSearch } from "../context/SearchContext";
-import { useLocation } from "react-router-dom";
+import { useLocation,useNavigate } from "react-router-dom";
 
 export default function Products() {
   const [products,setProducts] = useState([]);
@@ -17,6 +17,7 @@ export default function Products() {
   const [page,setPage] = useState(1);
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   const queryParams = new URLSearchParams(location.search);
   const urlSearch = queryParams.get("search") || "";
@@ -102,7 +103,15 @@ export default function Products() {
                     disabled={!!search}
                     value={cat}
                     checked={category === cat}
-                    onChange={(e) => { setCategory(e.target.value),setSearch(""); }}
+                    onChange={(e) => {
+                      const selectedCategory = e.target.value;
+
+                      setCategory(selectedCategory);
+                      setSearch("");
+
+                      // 🔥 REMOVE search from URL
+                      navigate(`/products?category=${selectedCategory}`);
+                    }}
                   /> {cat}
                 </label>
               </p>
