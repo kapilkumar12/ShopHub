@@ -1,342 +1,302 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
-  getCart,
-  updateCartItem,
-  removeFromCart,
-} from "../services/cart";
-import { getRelatedProducts } from "../services/product";
+  productDetails,
+  getRelatedProducts,
+} from "../services/product";
+import {
+  wishlistToggle,
+  checkWishlist,
+} from "../services/wishlist";
+import { addToCart } from "../services/cart";
 import ProductCard from "../components/ProductCard";
-import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import {
+  createReviews,
+  getProductReviews,
+} from "../services/reviews";
 import { useCart } from "../context/CartContext";
-import CartSkeleton from "../skeletons/CartSkeleton";
+import { useAuth } from "../context/AuthContext";
+import { useWishlist } from "../context/WishlistContext";
+import AuthModal from "../components/AuthModal";
+import Swal from "sweetalert2";
+import ProductDetailsSkeleton from "../skeletons/ProductDetailsSkeleton";
 
-export default function Cart() {
-  const [cart, setCart] = useState([]);
-  const [summary, setSummary] = useState({
-    subtotal: 0,
-    gst: 0,
-    total: 0,
-  });
-  const [relatedProducts, setRelatedProducts] = useState([]);
-
-  const [loading, setLoading] = useState(true);
-  const [loadingId, setLoadingId] = useState(null);
+export default function ProductDetails() {
+  const { id } = useParams();
+  const navigate = useNavigate();
 
   const { user } = useAuth();
   const { updateCartCount } = useCart();
+  const { fetchWishlistCount } = useWishlist();
 
-  const navigate = useNavigate();
+  const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [wishlisted, setWishlisted] = useState(false);
 
   ////////////////////////////////////////////////////////////////
-  // 🔥 FETCH CART
+  // 🚀 FETCH ALL DATA (PARALLEL)
   ////////////////////////////////////////////////////////////////
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
-  const fetchCart = async () => {
+  const fetchAll = useCallback(async () => {
     try {
-      const res = await getCart();
+      setLoading(true);
 
-      const items = res?.items || [];
-      setCart(items);
+      const [pRes, rRes, relRes] = await Promise.all([
+        productDetails(id),
+        getProductReviews(id),
+        getRelatedProducts(id),
+      ]);
 
-      updateSummary(items);
-      updateCartCount(items); // 🔥 navbar sync
+      const productData = pRes || {};
+      const reviewsData = rRes?.reviews || rRes || [];
+      const relatedData = relRes?.products || [];
 
-      if (items.length > 0) {
-        fetchRelated(items[0]?.product?._id);
-      }
+      setProduct(productData);
+      setReviews(reviewsData);
+      setRelatedProducts(relatedData);
+
+      setSelectedImage(productData?.images?.[0]?.url || null);
 
     } catch (err) {
-      console.error(err);
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   ////////////////////////////////////////////////////////////////
-  // 🔥 RELATED PRODUCTS
+  // ❤️ WISHLIST CHECK
   ////////////////////////////////////////////////////////////////
-  const fetchRelated = async (id) => {
-    try {
-      const res = await getRelatedProducts(id);
-      setRelatedProducts(res?.products || res || []);
-    } catch (err) {
-      console.log("Related fetch failed");
-    }
-  };
+  useEffect(() => {
+    if (!user || !id) return;
+
+    const run = async () => {
+      try {
+        const res = await checkWishlist(id);
+        setWishlisted(res?.wishlisted || false);
+      } catch {}
+    };
+
+    run();
+  }, [user, id]);
 
   ////////////////////////////////////////////////////////////////
-  // 🔥 SUMMARY CALCULATION
+  // 🛒 ADD TO CART
   ////////////////////////////////////////////////////////////////
-  const updateSummary = (items) => {
-    let subtotal = 0;
-    let gst = 0;
-
-    items.forEach((item) => {
-      const price = item.pricing || {};
-
-      subtotal += (price.sellingPrice || 0) * item.quantity;
-      gst += (price.gstAmount || 0) * item.quantity;
-    });
-
-    setSummary({
-      subtotal,
-      gst,
-      total: subtotal + gst,
-    });
-  };
-
-  ////////////////////////////////////////////////////////////////
-  // 🔥 QUANTITY UPDATE (LIVE)
-  ////////////////////////////////////////////////////////////////
-  const handleQuantity = async (productId, quantity) => {
-    if (quantity < 1) return;
+  const handleAddToCart = async () => {
+    if (!user) return setShowAuthModal(true);
 
     try {
-      setLoadingId(productId);
+      setActionLoading(true);
 
-      await updateCartItem(productId, quantity);
-
-      setCart((prev) => {
-        const updated = prev.map((item) => {
-          if (item.product._id === productId) {
-            return {
-              ...item,
-              quantity,
-              total: item.pricing.finalPrice * quantity,
-            };
-          }
-          return item;
-        });
-
-        updateSummary(updated);
-        updateCartCount(updated);
-
-        return updated;
+      await addToCart({
+        productId: product._id,
+        quantity: 1,
       });
 
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingId(null);
-    }
-  };
-
-  ////////////////////////////////////////////////////////////////
-  // 🔥 REMOVE ITEM
-  ////////////////////////////////////////////////////////////////
-  const handleRemove = async (productId) => {
-    const result = await Swal.fire({
-      title: "Remove item?",
-      icon: "warning",
-      showCancelButton: true,
-    });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      await removeFromCart(productId);
-
-      setCart((prev) => {
-        const updated = prev.filter(
-          (item) => item.product._id !== productId
-        );
-
-        updateSummary(updated);
-        updateCartCount(updated);
-
-        return updated;
-      });
+      updateCartCount(1);
 
       Swal.fire({
         icon: "success",
-        title: "Removed",
-        timer: 1000,
+        title: "Added to Cart",
+        timer: 800,
         showConfirmButton: false,
       });
 
-    } catch (err) {
-      console.error(err);
+    } catch {
+      Swal.fire("Error", "Add failed", "error");
+    } finally {
+      setActionLoading(false);
     }
   };
 
   ////////////////////////////////////////////////////////////////
-  // 🔥 CHECKOUT
+  // ❤️ TOGGLE WISHLIST
   ////////////////////////////////////////////////////////////////
-  const handleCheckout = () => {
-    if (!user) {
-      Swal.fire("Login Required");
-      return;
-    }
+  const handleWishlist = async () => {
+    if (!user) return setShowAuthModal(true);
 
-    if (cart.length === 0) {
-      Swal.fire("Cart empty");
-      return;
-    }
+    try {
+      const res = await wishlistToggle(product._id);
 
-    navigate("/checkout");
+      setWishlisted(res?.wishlisted);
+      fetchWishlistCount();
+
+    } catch {
+      Swal.fire("Error", "Wishlist failed", "error");
+    }
   };
 
   ////////////////////////////////////////////////////////////////
-  // UI STATES
+  // ⭐ REVIEW
   ////////////////////////////////////////////////////////////////
-  if (loading) {
-    return <CartSkeleton />;
-  }
+  const handleReview = async () => {
+    if (!user) return setShowAuthModal(true);
 
-  if (cart.length === 0) {
-    return <p className="text-center mt-10">🛒 Cart is empty</p>;
-  }
+    try {
+      await createReviews({
+        productId: id,
+        rating,
+        comment,
+      });
+
+      setComment("");
+      setRating(5);
+
+      fetchAll(); // refresh reviews
+
+    } catch {
+      Swal.fire("Error", "Review failed", "error");
+    }
+  };
+
+  ////////////////////////////////////////////////////////////////
+  // ⏳ LOADING
+  ////////////////////////////////////////////////////////////////
+  if (loading) return <ProductDetailsSkeleton />;
+
+  if (!product) return <p>Product not found</p>;
+
+  ////////////////////////////////////////////////////////////////
+  // SAFE DATA
+  ////////////////////////////////////////////////////////////////
+  const {
+    name = "Product",
+    description = "",
+    images = [],
+    basePrice = 0,
+    finalPrice = 0,
+    discountPercent = 0,
+    averageRating = 0,
+    shippingCost = 0,
+  } = product;
 
   ////////////////////////////////////////////////////////////////
   // UI
   ////////////////////////////////////////////////////////////////
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="p-4 md:p-6">
 
-      {/* ================= LEFT ================= */}
-      <div className="lg:col-span-2 space-y-4">
-        {cart.map((item) => {
-          const p = item.product;
-          const price = item.pricing || {};
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-          return (
-            <div
-              key={p._id}
-              className="flex flex-col md:flex-row justify-between bg-white p-4 rounded-xl shadow gap-4"
-            >
-
-              {/* PRODUCT */}
-              <div className="flex gap-4">
-                <img
-                  src={p.images?.[0]?.url}
-                  className="w-24 h-24 object-cover rounded"
-                  loading="lazy"
-                />
-
-                <div>
-                  <h3 className="font-semibold">{p.name}</h3>
-
-                  <div className="text-sm mt-1">
-                    <span className="line-through text-gray-400 mr-2">
-                     ₹{Math.round(price.mrp || 0)}
-                    </span>
-
-                    <span className="text-red-600 font-bold">
-                      ₹{Math.round(price.sellingPrice || 0)}
-                    </span>
-
-                    <span className="text-green-600 ml-2 text-xs">
-                      {price.discount || 0}% OFF
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-gray-500">
-                    GST: ₹{Math.round(price.gstAmount || 0)}
-                  </p>
-
-                  <p className="text-xs font-semibold">
-                    Final: ₹{Math.round(price.finalPrice || 0)}
-                  </p>
-                </div>
-              </div>
-
-              {/* QUANTITY */}
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={loadingId === p._id}
-                  onClick={() =>
-                    handleQuantity(p._id, item.quantity - 1)
-                  }
-                  className="px-3 py-1 bg-gray-200 rounded"
-                >
-                  -
-                </button>
-
-                <span>{item.quantity}</span>
-
-                <button
-                  disabled={loadingId === p._id}
-                  onClick={() =>
-                    handleQuantity(p._id, item.quantity + 1)
-                  }
-                  className="px-3 py-1 bg-gray-200 rounded"
-                >
-                  +
-                </button>
-              </div>
-
-              {/* TOTAL */}
-              <div className="flex flex-col items-end gap-2">
-                <span className="font-bold">
-                  ₹{Math.round(item.total || price.finalPrice * item.quantity)}
-                </span>
-
-                <button
-                  onClick={() => handleRemove(p._id)}
-                  className="text-red-500 text-sm"
-                >
-                  Remove
-                </button>
-              </div>
-
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ================= RIGHT ================= */}
-      <div className="bg-white p-4 rounded-xl shadow h-fit sticky top-6">
-        <h3 className="text-lg font-bold mb-3">
-          Order Summary
-        </h3>
-
-        <div className="text-sm space-y-2">
-          <div className="flex justify-between">
-            <span>Subtotal</span>
-            <span>₹{Math.round(summary.subtotal)}</span>
+        {/* IMAGES */}
+        <div className="lg:col-span-2 flex gap-3">
+          <div className="flex lg:flex-col gap-2">
+            {images.map((img, i) => (
+              <img
+                key={i}
+                src={img?.url}
+                onMouseEnter={() => setSelectedImage(img?.url)}
+                className="w-16 h-16 cursor-pointer border"
+                loading="lazy"
+              />
+            ))}
           </div>
 
-          <div className="flex justify-between">
-            <span>GST</span>
-            <span>₹{Math.round(summary.gst)}</span>
-          </div>
-
-          <div className="flex justify-between font-bold text-lg border-t pt-2">
-            <span>Total</span>
-            <span>₹{Math.round(summary.total)}</span>
-          </div>
+          <img
+            src={selectedImage}
+            className="h-80 object-contain w-full"
+          />
         </div>
 
-        <button
-          onClick={handleCheckout}
-          className="w-full mt-4 bg-green-600 text-white py-2 rounded-lg"
-        >
-          Proceed to Checkout
-        </button>
+        {/* INFO */}
+        <div className="lg:col-span-2">
+          <h1 className="text-xl font-semibold">{name}</h1>
+
+          <p className="text-yellow-500 mt-2">
+            ⭐ {averageRating} ({reviews.length})
+          </p>
+
+          <div className="mt-4">
+            <span className="line-through text-gray-400">
+              ₹{basePrice}
+            </span>
+
+            <span className="text-2xl font-bold text-red-600 ml-2">
+              ₹{finalPrice}
+            </span>
+
+            <span className="text-green-600 ml-2">
+              {discountPercent}% OFF
+            </span>
+          </div>
+
+          <p className="mt-4 text-gray-600">
+            {description}
+          </p>
+        </div>
+
+        {/* BUY BOX */}
+        <div className="border p-4 rounded">
+          <h2 className="text-xl font-bold">₹{finalPrice}</h2>
+
+          <p className="text-green-600">
+            {shippingCost === 0 ? "Free Delivery" : `₹${shippingCost}`}
+          </p>
+
+          <button
+            onClick={handleAddToCart}
+            disabled={actionLoading}
+            className="w-full bg-yellow-400 mt-3 py-2 rounded"
+          >
+            {actionLoading ? "Adding..." : "Add to Cart"}
+          </button>
+
+          <button
+            onClick={handleWishlist}
+            className="w-full mt-2 border py-2"
+          >
+            {wishlisted ? "❤️ Wishlisted" : "🤍 Wishlist"}
+          </button>
+        </div>
+
       </div>
 
-      {/* ================= RELATED ================= */}
-      <div className="lg:col-span-3 mt-10">
-        <h2 className="text-xl font-bold mb-4">
-          You might also like
-        </h2>
+      {/* REVIEWS */}
+      <div className="mt-10">
+        <h2 className="font-bold mb-3">Reviews</h2>
+
+        {reviews.map((r, i) => (
+          <div key={i} className="border-b py-2">
+            <p className="font-semibold">{r.user?.name}</p>
+            <p>{"★".repeat(r.rating)}</p>
+            <p>{r.comment}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* RELATED */}
+      <div className="mt-10">
+        <h2 className="font-bold mb-3">Related</h2>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {relatedProducts?.length > 0 ? (
-            relatedProducts.map((p) => (
-              <ProductCard key={p._id} product={p} />
-            ))
-          ) : (
-            <p>No related products</p>
-          )}
+          {relatedProducts.map((p) => (
+            <ProductCard key={p._id} product={p} />
+          ))}
         </div>
       </div>
 
+      {showAuthModal && (
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          type="login"
+        />
+      )}
     </div>
   );
 }

@@ -1,86 +1,85 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { createOrder } from "../services/order";
 import { getCart } from "../services/cart";
-import { useNavigate,useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import Swal from "sweetalert2";
 import CheckoutSkeleton from "../skeletons/CheckoutSkeleton";
 
 export default function Checkout() {
 
-  const location = useLocation();
-  const directBuyData = location.state;
+  const { state } = useLocation();
+  const isDirectBuy = state?.directBuy;
 
-  const [cart,setCart] = useState([]);
-  const [summary,setSummary] = useState({});
-  const [loading,setLoading] = useState(true);
-  const [paymentMethod,setPaymentMethod] = useState("cod");
-  const [placingOrder,setPlacingOrder] = useState(false);
+  const [cart, setCart] = useState([]);
+  const [summary, setSummary] = useState(null);
 
-  const safe = (v) => v ?? 0;
+  const [loading, setLoading] = useState(true);
+  const [placingOrder, setPlacingOrder] = useState(false);
+
+  const [paymentMethod, setPaymentMethod] = useState("cod");
 
   const { fetchCartCount } = useCart();
   const navigate = useNavigate();
 
-
   ////////////////////////////////////////////////////////////////
   // FORM STATE
   ////////////////////////////////////////////////////////////////
-  const [form,setForm] = useState({
+  const [form, setForm] = useState({
     name: "",
     address: "",
     city: "",
     pincode: "",
-    phone: ""
+    phone: "",
   });
 
   ////////////////////////////////////////////////////////////////
-  // 🔥 FETCH CART OR DIRECT BUY
+  // 🚀 INIT DATA
   ////////////////////////////////////////////////////////////////
   useEffect(() => {
 
-    if (directBuyData?.directBuy) {
-
-      const p = directBuyData.product;
+    if (isDirectBuy) {
+      const p = state.product;
 
       const item = {
         product: {
           name: p.name,
-          images: [{ url: p.images?.[0]?.url }]
+          images: [{ url: p.images?.[0]?.url }],
         },
         quantity: p.quantity || 1,
         pricing: {
-          finalPrice: p.finalPrice
-        }
+          finalPrice: p.finalPrice,
+        },
       };
 
       setCart([item]);
 
       setSummary({
-        subtotal: p.sellingPrice || p.basePrice || 0,
-        gstAmount: p.gstAmount || 0,
-        shippingCost: p.shippingCost || 0,
-        total: p.finalPrice || 0
+        subtotal: p.sellingPrice || 0,
+        gst: p.gstAmount || 0,
+        shipping: p.shippingCost || 0,
+        total: p.finalPrice || 0,
       });
 
       setLoading(false);
-
     } else {
       fetchCart();
     }
 
-  },[]);
+  }, []);
 
+  ////////////////////////////////////////////////////////////////
+  // 🛒 FETCH CART
   ////////////////////////////////////////////////////////////////
   const fetchCart = async () => {
     try {
       const res = await getCart();
 
       setCart(res?.items || []);
-      setSummary(res?.summary || {});
+      setSummary(res?.summary || null);
 
     } catch (err) {
-      console.error(err);
+      Swal.fire("Error", "Failed to load cart", "error");
     } finally {
       setLoading(false);
     }
@@ -90,29 +89,30 @@ export default function Checkout() {
   // INPUT
   ////////////////////////////////////////////////////////////////
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    });
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
   ////////////////////////////////////////////////////////////////
-  // VALIDATION
+  // ✅ VALIDATION (PRO LEVEL)
   ////////////////////////////////////////////////////////////////
   const validateForm = () => {
-    if (
-      !form.name ||
-      !form.address ||
-      !form.city ||
-      !form.pincode ||
-      !form.phone
-    ) {
-      Swal.fire("Missing Fields","Fill all details","error");
+    const { name, address, city, pincode, phone } = form;
+
+    if (!name.trim() || !address.trim() || !city.trim()) {
+      Swal.fire("Missing Fields", "Fill all details", "error");
       return false;
     }
 
-    if (form.phone.length < 10) {
-      Swal.fire("Invalid Phone","Enter valid phone","error");
+    if (!/^[0-9]{6}$/.test(pincode)) {
+      Swal.fire("Invalid Pincode", "Enter valid 6-digit pincode", "error");
+      return false;
+    }
+
+    if (!/^[0-9]{10}$/.test(phone)) {
+      Swal.fire("Invalid Phone", "Enter valid 10-digit phone", "error");
       return false;
     }
 
@@ -120,249 +120,161 @@ export default function Checkout() {
   };
 
   ////////////////////////////////////////////////////////////////
-  // PLACE ORDER
+  // 💰 PLACE ORDER
   ////////////////////////////////////////////////////////////////
   const handlePlaceOrder = async () => {
+
     if (!validateForm()) return;
 
     try {
       setPlacingOrder(true);
 
-      const orderData = {
+      const payload = {
         address: `${form.name}, ${form.address}, ${form.city} - ${form.pincode}`,
         phone: form.phone,
         paymentMethod,
-
-        // 🔥 IMPORTANT: SEND DIRECT PRODUCT IF BUY NOW
-        ...(directBuyData?.directBuy && {
-          directProduct: directBuyData.product._id
-        })
       };
 
-      await createOrder(orderData);
+      if (isDirectBuy) {
+        payload.directProduct = state.product._id;
+      }
+
+      await createOrder(payload);
 
       await fetchCartCount();
 
       Swal.fire({
         icon: "success",
         title: "Order Placed 🎉",
-        timer: 1500,
+        timer: 1200,
         showConfirmButton: false,
       });
 
       navigate("/orders");
 
     } catch (error) {
-      Swal.fire("Error","Order failed","error");
+      Swal.fire("Error", error?.message || "Order failed", "error");
     } finally {
       setPlacingOrder(false);
     }
   };
 
   ////////////////////////////////////////////////////////////////
-  // LOADING / EMPTY
+  // SAFE SUMMARY
+  ////////////////////////////////////////////////////////////////
+  const safeSummary = useMemo(() => ({
+    subtotal: summary?.subtotal || 0,
+    gst: summary?.gst || summary?.gstAmount || 0,
+    shipping: summary?.shipping || summary?.shippingCost || 0,
+    total: summary?.total || 0,
+  }), [summary]);
+
+  ////////////////////////////////////////////////////////////////
+  // UI STATES
   ////////////////////////////////////////////////////////////////
   if (loading) return <CheckoutSkeleton />;
 
-  // ❗ FIX: only for cart flow
-  if (!directBuyData?.directBuy && cart.length === 0) {
+  if (!isDirectBuy && cart.length === 0) {
     return <p className="text-center mt-10">Cart Empty</p>;
   }
 
   ////////////////////////////////////////////////////////////////
-  // UI (UNCHANGED)
+  // UI
   ////////////////////////////////////////////////////////////////
   return (
     <div className="bg-gray-100 min-h-screen p-4 md:p-8">
 
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
 
-        {/* ================= LEFT FORM ================= */}
-        <div className="bg-white p-6 rounded-2xl shadow-xl">
+        {/* LEFT FORM */}
+        <div className="bg-white p-6 rounded-xl shadow">
 
-          <h2 className="text-2xl font-bold mb-6">
-            🚚 Shipping Details
+          <h2 className="text-xl font-bold mb-4">
+            Shipping Details
           </h2>
 
-          <div className="grid gap-4">
+          <div className="space-y-3">
 
-            <input
-              name="name"
-              placeholder="Full Name"
-              onChange={handleChange}
-              className="input"
-            />
+            <input name="name" placeholder="Full Name" onChange={handleChange} className="input" />
+            <input name="phone" placeholder="Phone" onChange={handleChange} className="input" />
+            <textarea name="address" placeholder="Address" onChange={handleChange} className="input" />
 
-            <input
-              name="phone"
-              placeholder="Phone Number"
-              onChange={handleChange}
-              className="input"
-            />
-
-            <textarea
-              name="address"
-              placeholder="Full Address"
-              onChange={handleChange}
-              className="input"
-            />
-
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                name="city"
-                placeholder="City"
-                onChange={handleChange}
-                className="input"
-              />
-
-              <input
-                name="pincode"
-                placeholder="Pincode"
-                onChange={handleChange}
-                className="input"
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <input name="city" placeholder="City" onChange={handleChange} className="input" />
+              <input name="pincode" placeholder="Pincode" onChange={handleChange} className="input" />
             </div>
+
           </div>
 
           {/* PAYMENT */}
-          <div className="mt-6">
-            <h3 className="font-semibold mb-3">Payment Method</h3>
+          <div className="mt-5">
+            <h3 className="font-semibold mb-2">Payment</h3>
 
-            <div className="space-y-3">
+            <label className="block">
+              <input type="radio" checked={paymentMethod === "cod"} onChange={() => setPaymentMethod("cod")} />
+              COD
+            </label>
 
-              <label className={`payment-box ${paymentMethod === "cod" && "active"}`}>
-                <input
-                  type="radio"
-                  checked={paymentMethod === "cod"}
-                  onChange={() => setPaymentMethod("cod")}
-                />
-                Cash on Delivery
-              </label>
-
-              <label className={`payment-box ${paymentMethod === "online" && "active"}`}>
-                <input
-                  type="radio"
-                  checked={paymentMethod === "online"}
-                  onChange={() => setPaymentMethod("online")}
-                />
-                Online Payment
-              </label>
-
-            </div>
+            <label className="block">
+              <input type="radio" checked={paymentMethod === "online"} onChange={() => setPaymentMethod("online")} />
+              Online (Coming Soon)
+            </label>
           </div>
 
         </div>
 
-        {/* ================= RIGHT SUMMARY ================= */}
-        <div className="bg-white p-6 rounded-2xl shadow-xl h-fit sticky top-6">
+        {/* RIGHT SUMMARY */}
+        <div className="bg-white p-6 rounded-xl shadow h-fit">
 
-          <h2 className="text-xl font-bold mb-4">
-            🧾 Order Summary
-          </h2>
+          <h2 className="font-bold mb-3">Order Summary</h2>
 
-          {/* PRODUCTS */}
-          <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
-
-            {cart.map((item,index) => {
-              const p = item.product || {};
-              const price = item.pricing || {};
-
-              return (
-                <div key={index} className="flex gap-3 items-center">
-
-                  <img
-                    src={p.images?.[0]?.url}
-                    className="w-16 h-16 object-cover rounded"
-                    alt={p.name} loading="lazy"
-                  />
-
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      {p.name || item.name || "Product"}
-                    </p>
-
-                    <p className="text-xs text-gray-500">
-                      Qty: {item.quantity}
-                    </p>
-                  </div>
-
-                  <div className="text-sm font-semibold">
-                    ₹{Math.round((price.finalPrice || item.price || 0) * item.quantity)}
-                  </div>
-
-                </div>
-              );
-            })}
-
-          </div>
-
-          <hr className="my-4" />
-
-          {/* SUMMARY */}
           <div className="space-y-2 text-sm">
 
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>₹{Math.round(summary?.subtotal || 0)}</span>
+              <span>₹{safeSummary.subtotal}</span>
             </div>
 
             <div className="flex justify-between">
               <span>GST</span>
-              <span>₹{Math.round(safe(summary?.gstAmount || 0))}</span>
+              <span>₹{safeSummary.gst}</span>
             </div>
 
             <div className="flex justify-between">
               <span>Shipping</span>
               <span>
-                {safe(summary?.shippingCost) === 0
-                  ? "Free"
-                  : `₹${safe(summary?.shippingCost)}`}
+                {safeSummary.shipping === 0 ? "Free" : `₹${safeSummary.shipping}`}
               </span>
             </div>
 
-            <div className="flex justify-between font-bold text-lg border-t pt-2">
+            <div className="flex justify-between font-bold border-t pt-2">
               <span>Total</span>
-              <span>₹{Math.round(safe(summary?.total))}</span>
+              <span>₹{safeSummary.total}</span>
             </div>
 
           </div>
 
-          {/* BUTTON */}
           <button
             onClick={handlePlaceOrder}
             disabled={placingOrder}
-            className="mt-5 w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition"
+            className="mt-4 w-full bg-green-600 text-white py-2 rounded"
           >
-            {placingOrder ? "Placing Order..." : "Place Order"}
+            {placingOrder ? "Placing..." : "Place Order"}
           </button>
 
         </div>
 
       </div>
 
-      {/* STYLES */}
+      {/* STYLE */}
       <style>
         {`
-        .input {
-          width: 100%;
-          border: 1px solid #ddd;
-          padding: 12px;
-          border-radius: 10px;
-        }
-
-        .payment-box {
-          display: flex;
-          gap: 10px;
-          padding: 12px;
-          border: 1px solid #ddd;
-          border-radius: 10px;
-          cursor: pointer;
-        }
-
-        .payment-box.active {
-          border-color: #16a34a;
-          background: #f0fdf4;
-        }
+          .input {
+            width: 100%;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 8px;
+          }
         `}
       </style>
 

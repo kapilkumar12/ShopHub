@@ -1,12 +1,18 @@
-import { useEffect,useState } from "react";
-import { useParams,useNavigate } from "react-router-dom";
-import { productDetails,getRelatedProducts } from "../services/product";
-import { wishlistToggle,checkWishlist } from "../services/wishlist";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  productDetails,
+  getRelatedProducts,
+} from "../services/product";
+import {
+  wishlistToggle,
+  checkWishlist,
+} from "../services/wishlist";
 import { addToCart } from "../services/cart";
 import ProductCard from "../components/ProductCard";
 import {
   createReviews,
-  getProductReviews
+  getProductReviews,
 } from "../services/reviews";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -16,110 +22,86 @@ import Swal from "sweetalert2";
 import ProductDetailsSkeleton from "../skeletons/ProductDetailsSkeleton";
 
 export default function ProductDetails() {
-
   const { id } = useParams();
   const navigate = useNavigate();
 
   const { user } = useAuth();
-  const { updateCartCount,fetchCartCount } = useCart();
-
-  const [product,setProduct] = useState(null);
-  const [relatedProducts,setRelatedProducts] = useState([]);
-  const [reviews,setReviews] = useState([]);
-  const [selectedImage,setSelectedImage] = useState(null);
-
-  const [rating,setRating] = useState(5);
-  const [hoverRating,setHoverRating] = useState(0);
-  const [comment,setComment] = useState("");
-
-  const [loading,setLoading] = useState(false);
-  const [addedToCart,setAddedToCart] = useState(false);
-  const [showAuthModal,setShowAuthModal] = useState(false);
-  const [wishlisted,setWishlisted] = useState(false);
+  const { updateCartCount } = useCart();
   const { fetchWishlistCount } = useWishlist();
 
+  const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [wishlisted, setWishlisted] = useState(false);
+
   ////////////////////////////////////////////////////////////////
-  // ✅ FETCH DATA
+  // 🚀 FETCH ALL DATA (PARALLEL)
   ////////////////////////////////////////////////////////////////
+  const fetchAll = useCallback(async () => {
+    try {
+      setLoading(true);
 
-  useEffect(() => {
-    fetchProduct();
-    fetchReviews();
-    fetchRelatedProducts();
-  },[id]);
+      const [pRes, rRes, relRes] = await Promise.all([
+        productDetails(id),
+        getProductReviews(id),
+        getRelatedProducts(id),
+      ]);
 
-  const fetchProduct = async () => {
-    const data = await productDetails(id);
-    setProduct(data);
-    setSelectedImage(data?.images?.[0]?.url);
-  };
+      const productData = pRes || {};
+      const reviewsData = rRes?.reviews || rRes || [];
+      const relatedData = relRes?.products || [];
 
-  const fetchReviews = async () => {
-    const res = await getProductReviews(id);
-    setReviews(res?.reviews || res || []);
-  };
+      setProduct(productData);
+      setReviews(reviewsData);
+      setRelatedProducts(relatedData);
 
-  const fetchRelatedProducts = async () => {
-    const res = await getRelatedProducts(id);
-    setRelatedProducts(res?.products || []);
-  };
+      setSelectedImage(productData?.images?.[0]?.url || null);
 
-  const handleCheckout = () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
     }
-
-    navigate("/checkout",{
-      state: {
-        directBuy: true,
-        product: {
-          _id: product._id,
-          name: product.name,
-          images: product.images,
-          quantity: 1,
-          basePrice: product.basePrice,
-          sellingPrice: product.sellingPrice,
-          discountAmount: product.discountAmount,
-          finalPrice: product.finalPrice,
-          gstAmount: product.gstAmount,
-          shippingCost: product.shippingCost
-        }
-      }
-    });
-  };
-
-  ////////////////////////////////////////////////////////////////
-  // ✅ CHECK WISHLIST (SAFE)
-  ////////////////////////////////////////////////////////////////
+  }, [id]);
 
   useEffect(() => {
-    if (!user || !product?._id) return;
+    fetchAll();
+  }, [fetchAll]);
 
-    const check = async () => {
+  ////////////////////////////////////////////////////////////////
+  // ❤️ WISHLIST CHECK
+  ////////////////////////////////////////////////////////////////
+  useEffect(() => {
+    if (!user || !id) return;
+
+    const run = async () => {
       try {
-        const res = await checkWishlist(product._id);
-        setWishlisted(res.wishlisted);
-      } catch (err) {
-        console.log(err);
-      }
+        const res = await checkWishlist(id);
+        setWishlisted(res?.wishlisted || false);
+      } catch {}
     };
 
-    check();
-  },[user,product?._id]);
+    run();
+  }, [user, id]);
 
   ////////////////////////////////////////////////////////////////
   // 🛒 ADD TO CART
   ////////////////////////////////////////////////////////////////
-
   const handleAddToCart = async () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    if (!user) return setShowAuthModal(true);
 
     try {
-      setLoading(true);
+      setActionLoading(true);
 
       await addToCart({
         productId: product._id,
@@ -127,277 +109,192 @@ export default function ProductDetails() {
       });
 
       updateCartCount(1);
-      await fetchCartCount();
-
-      setAddedToCart(true);
 
       Swal.fire({
         icon: "success",
-        title: "Added to Cart 🛒",
-        timer: 1000,
-        showConfirmButton: false,
-      });
-
-      setTimeout(() => navigate("/cart"),1000);
-
-    } catch {
-      Swal.fire("Error","Failed to add to cart","error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  ////////////////////////////////////////////////////////////////
-  // ❤️ WISHLIST (REUSED API)
-  ////////////////////////////////////////////////////////////////
-
-  const handleWishlist = async () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-
-    try {
-      const res = await wishlistToggle(product._id);
-      setWishlisted(res.wishlisted);
-
-      await fetchWishlistCount();
-
-      Swal.fire({
-        icon: "success",
-        title: res.message,
+        title: "Added to Cart",
         timer: 800,
         showConfirmButton: false,
       });
 
     } catch {
-      Swal.fire("Error","Wishlist failed","error");
+      Swal.fire("Error", "Add failed", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  ////////////////////////////////////////////////////////////////
+  // ❤️ TOGGLE WISHLIST
+  ////////////////////////////////////////////////////////////////
+  const handleWishlist = async () => {
+    if (!user) return setShowAuthModal(true);
+
+    try {
+      const res = await wishlistToggle(product._id);
+
+      setWishlisted(res?.wishlisted);
+      fetchWishlistCount();
+
+    } catch {
+      Swal.fire("Error", "Wishlist failed", "error");
     }
   };
 
   ////////////////////////////////////////////////////////////////
   // ⭐ REVIEW
   ////////////////////////////////////////////////////////////////
-
-  const handleAddReview = async () => {
-
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+  const handleReview = async () => {
+    if (!user) return setShowAuthModal(true);
 
     try {
-
-      await createReviews({ productId: id,rating,comment });
-      setComment("");
-      setRating(5);
-      fetchReviews();
-
-      Swal.fire({
-        icon: "success",
-        title: "Review added 🎉",
-        timer: 1000,
-        showConfirmButton: false,
+      await createReviews({
+        productId: id,
+        rating,
+        comment,
       });
 
-    } catch (error) {
-      Swal.fire("Error","Failed to add review","error");
-    }
+      setComment("");
+      setRating(5);
 
+      fetchAll(); // refresh reviews
+
+    } catch {
+      Swal.fire("Error", "Review failed", "error");
+    }
   };
 
+  ////////////////////////////////////////////////////////////////
+  // ⏳ LOADING
+  ////////////////////////////////////////////////////////////////
+  if (loading) return <ProductDetailsSkeleton />;
+
+  if (!product) return <p>Product not found</p>;
 
   ////////////////////////////////////////////////////////////////
-  // ✅ IMPORTANT: AFTER ALL HOOKS
+  // SAFE DATA
   ////////////////////////////////////////////////////////////////
+  const {
+    name = "Product",
+    description = "",
+    images = [],
+    basePrice = 0,
+    finalPrice = 0,
+    discountPercent = 0,
+    averageRating = 0,
+    shippingCost = 0,
+  } = product;
 
-  if (!product) return <ProductDetailsSkeleton />;
-
-  const mrp = product.basePrice || 0;
-  const finalPrice = product.finalPrice || 0;
-  const discount = product.discountPercent || 0;
-
-
+  ////////////////////////////////////////////////////////////////
+  // UI
   ////////////////////////////////////////////////////////////////
   return (
     <div className="p-4 md:p-6">
 
-      {/* 🔥 GRID FIX (IMPORTANT) */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-        {/* LEFT IMAGE SECTION */}
-        <div className="lg:col-span-2 flex flex-col lg:flex-row gap-4">
-
-          {/* THUMBNAILS */}
-          <div className="flex order-2 lg:order-1 lg:flex-col gap-2 overflow-x-auto">
-            {product.images?.map((img,i) => (
+        {/* IMAGES */}
+        <div className="lg:col-span-2 flex gap-3">
+          <div className="flex lg:flex-col gap-2">
+            {images.map((img, i) => (
               <img
                 key={i}
-                src={img.url}
-                onMouseEnter={() => setSelectedImage(img.url)}
-                className="w-16 h-16 border cursor-pointer"
+                src={img?.url}
+                onMouseEnter={() => setSelectedImage(img?.url)}
+                className="w-16 h-16 cursor-pointer border"
                 loading="lazy"
               />
             ))}
           </div>
 
-          {/* MAIN IMAGE */}
-          <div className="order-1 lg:order-2 bg-gray-100 h-87.5 flex items-center justify-center">
-            <img src={selectedImage} className="max-h-full" loading="lazy" />
-          </div>
+          <img
+            src={selectedImage}
+            className="h-80 object-contain w-full"
+          />
         </div>
 
-        {/* CENTER INFO */}
+        {/* INFO */}
         <div className="lg:col-span-2">
+          <h1 className="text-xl font-semibold">{name}</h1>
 
-          <h1 className="text-xl font-semibold">{product.name}</h1>
+          <p className="text-yellow-500 mt-2">
+            ⭐ {averageRating} ({reviews.length})
+          </p>
 
-          <div className="text-yellow-500 mt-2">
-            ⭐ {product.averageRating || 4.2} ({reviews.length})
-          </div>
-
-          {/* PRICE */}
           <div className="mt-4">
-            <div className="line-through text-gray-400">₹{mrp}</div>
-            <div className="text-3xl font-bold text-red-600">₹{finalPrice}</div>
-            <div className="text-green-600">
-              {product.discountPercent}% OFF
-            </div>
+            <span className="line-through text-gray-400">
+              ₹{basePrice}
+            </span>
+
+            <span className="text-2xl font-bold text-red-600 ml-2">
+              ₹{finalPrice}
+            </span>
+
+            <span className="text-green-600 ml-2">
+              {discountPercent}% OFF
+            </span>
           </div>
 
           <p className="mt-4 text-gray-600">
-            {product.description}
+            {description}
+          </p>
+        </div>
+
+        {/* BUY BOX */}
+        <div className="border p-4 rounded">
+          <h2 className="text-xl font-bold">₹{finalPrice}</h2>
+
+          <p className="text-green-600">
+            {shippingCost === 0 ? "Free Delivery" : `₹${shippingCost}`}
           </p>
 
+          <button
+            onClick={handleAddToCart}
+            disabled={actionLoading}
+            className="w-full bg-yellow-400 mt-3 py-2 rounded"
+          >
+            {actionLoading ? "Adding..." : "Add to Cart"}
+          </button>
+
+          <button
+            onClick={handleWishlist}
+            className="w-full mt-2 border py-2"
+          >
+            {wishlisted ? "❤️ Wishlisted" : "🤍 Wishlist"}
+          </button>
         </div>
 
-        {/* 🔥 RIGHT BUY BOX FIX */}
-        <div className="lg:col-span-1">
-          <div className="border p-4 rounded shadow sticky top-6">
-
-            <h2 className="text-2xl font-bold">₹{finalPrice}</h2>
-
-            <p className="text-green-600">
-              Delivery Charge {product.shippingCost === 0
-                ? "FREE Delivery"
-                : `₹${product.shippingCost}`}
-            </p>
-
-            <button
-              onClick={handleAddToCart}
-              disabled={loading || addedToCart}
-              className="w-full bg-yellow-400 mt-4 py-2 rounded"
-            >
-              {loading
-                ? "Adding..."
-                : addedToCart
-                  ? "Added ✅"
-                  : "Add to Cart"}
-            </button>
-
-            <button onClick={handleCheckout} className="w-full bg-orange-500 text-white mt-2 py-2 rounded">
-              Buy Now
-            </button>
-
-            <button onClick={handleWishlist} className="w-full mt-2 border py-2">
-              {wishlisted ? "❤️" : "🤍"} Wishlist
-            </button>
-
-          </div>
-        </div>
-
-      </div>
-
-      {/* ⭐ RATING INPUT (NEW) */}
-      <div className="mt-6">
-        <h3 className="font-semibold mb-2">Rate this product</h3>
-
-        <div className="flex gap-1 text-2xl cursor-pointer">
-          {[1,2,3,4,5].map((star) => (
-            <span
-              key={star}
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHoverRating(star)}
-              onMouseLeave={() => setHoverRating(0)}
-              className={
-                (hoverRating || rating) >= star
-                  ? "text-yellow-500"
-                  : "text-gray-300"
-              }
-            >
-              ★
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* REVIEW INPUT */}
-      <div className="mt-4">
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          className="w-full border p-2 rounded-md bg-gray-50"
-          placeholder="Write review..."
-        />
-        <button
-          onClick={handleAddReview}
-          className="mt-2 bg-blue-500 text-white px-4 py-2"
-        >
-          Submit Review
-        </button>
       </div>
 
       {/* REVIEWS */}
       <div className="mt-10">
-        <h2 className="text-lg font-bold mb-4">
-          Customer Reviews
-        </h2>
+        <h2 className="font-bold mb-3">Reviews</h2>
 
-        {reviews.map((r,i) => {
-          const userName = r.user?.name || "Anonymous";
-          const avatar =
-            r.user?.profilePic ||
-            `https://ui-avatars.com/api/?name=${userName}`;
-
-          return (
-            <div key={i} className="border-b py-4 flex gap-3">
-              <img src={avatar} className="w-10 h-10 rounded-full" loading="lazy" />
-
-              <div>
-                <p className="font-semibold text-sm">{userName}</p>
-                <div className="text-yellow-500 text-xs">
-                  {"★".repeat(r.rating)}
-                </div>
-                <p className="text-sm">{r.comment}</p>
-              </div>
-            </div>
-          );
-        })}
+        {reviews.map((r, i) => (
+          <div key={i} className="border-b py-2">
+            <p className="font-semibold">{r.user?.name}</p>
+            <p>{"★".repeat(r.rating)}</p>
+            <p>{r.comment}</p>
+          </div>
+        ))}
       </div>
 
-      {/* RELATED PRODUCTS */}
+      {/* RELATED */}
       <div className="mt-10">
-        <h2 className="text-lg font-bold mb-4">
-          Related Products
-        </h2>
+        <h2 className="font-bold mb-3">Related</h2>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {relatedProducts.length > 0 ? (
-            relatedProducts.map((p) => (
-              <ProductCard key={p._id} product={p} />
-            ))
-          ) : (
-            <p>No related products</p>
-          )}
+          {relatedProducts.map((p) => (
+            <ProductCard key={p._id} product={p} />
+          ))}
         </div>
       </div>
+
       {showAuthModal && (
         <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
           type="login"
-          setType={() => { }}
-          openOTP={() => { }}
         />
       )}
     </div>

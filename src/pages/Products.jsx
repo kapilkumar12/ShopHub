@@ -1,102 +1,120 @@
-import { useEffect,useState,useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { productFilter as filterAPI } from "../services/product";
 import ProductCard from "../components/ProductCard";
 import { useSearch } from "../context/SearchContext";
-import { useLocation,useNavigate } from "react-router-dom";
 import ProductsSkeleton from "../skeletons/ProductsSkeleton";
 
 export default function Products() {
-  const [products,setProducts] = useState([]);
-  const [categories,setCategories] = useState([]);
-  const [loading,setLoading] = useState(true);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // filters
-  const { search, setSearch } = useSearch();
-  const [category,setCategory] = useState("");
-  const [priceRange,setPriceRange] = useState(200000);
-  const [sort,setSort] = useState("");
-  const [page,setPage] = useState(1);
-
+  const { setSearch } = useSearch();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const queryParams = new URLSearchParams(location.search);
+  // filters
+  const [filters, setFilters] = useState({
+    category: "",
+    price: 200000,
+    sort: "",
+    page: 1,
+    search: "",
+  });
 
-  const urlSearch = queryParams.get("search") || "";
-  const urlCategory = queryParams.get("category") || "";
-
-    useEffect(() => {
-    setCategory(urlCategory);
-  }, [urlCategory]);
+  const query = new URLSearchParams(location.search);
+  const urlSearch = query.get("search") || "";
+  const urlCategory = query.get("category") || "";
 
   ////////////////////////////////////////////////////////////////
-  // 🔥 FETCH (ONLY ONE API)
+  // sync URL → state
+  ////////////////////////////////////////////////////////////////
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      category: urlCategory,
+      search: urlSearch,
+      page: 1,
+    }));
+  }, [urlSearch, urlCategory]);
+
+  ////////////////////////////////////////////////////////////////
+  // FETCH PRODUCTS (stable + clean)
   ////////////////////////////////////////////////////////////////
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
 
-      const data = await filterAPI({
-        search: category ? "" : urlSearch,
-        category: category,
-        sort,
+      const res = await filterAPI({
+        search: filters.search,
+        category: filters.category,
+        sort: filters.sort,
         minPrice: 0,
-        maxPrice: priceRange,
-        page
+        maxPrice: filters.price,
+        page: filters.page,
       });
 
-      // ✅ directly use API response
-      setProducts(data?.products || []);
-      setCategories(data?.categories || []);
+      setProducts(res?.products ?? []);
+      setCategories(res?.categories ?? []);
 
-    } catch (error) {
-      console.error("Filter failed:",error);
+    } catch (err) {
+      console.error("Product fetch failed:", err);
       setProducts([]);
     } finally {
       setLoading(false);
     }
-  },[urlSearch,category,priceRange,page,sort]);
+  }, [filters]);
 
   ////////////////////////////////////////////////////////////////
-  // AUTO FETCH
+  // debounce fetch
   ////////////////////////////////////////////////////////////////
   useEffect(() => {
-    const delay = setTimeout(fetchProducts,400);
-    return () => clearTimeout(delay);
-  },[fetchProducts]);
+    const timer = setTimeout(fetchProducts, 300);
+    return () => clearTimeout(timer);
+  }, [fetchProducts]);
 
-
-  useEffect(() => {
-
-    if (!urlSearch) return;
-    setCategory("");
-    setPriceRange(200000);
-    setSort("");
-    setPage(1);
-
-  },[urlSearch]);
-
-
-  const handleCategoryChange = (cat) => {
+  ////////////////////////////////////////////////////////////////
+  // handlers (clean reducer style)
+  ////////////////////////////////////////////////////////////////
+  const handleCategory = (cat) => {
     setSearch("");
-    setCategory(cat);
-    if (!cat) {
-      navigate("/products"); // reset
-    } else {
+
+    setFilters((prev) => ({
+      ...prev,
+      category: cat,
+      search: "",
+      page: 1,
+    }));
+
+    if (cat) {
       navigate(`/products?category=${encodeURIComponent(cat)}`);
+    } else {
+      navigate("/products");
     }
   };
 
-  const handleSortChange = (value) => {
-    setSort(value);
+  const handleSort = (value) => {
+    setFilters((prev) => ({
+      ...prev,
+      sort: value,
+      page: 1,
+    }));
   };
 
-  if (loading) {
-  return <ProductsSkeleton />;
-}
+  const handlePrice = (value) => {
+    setFilters((prev) => ({
+      ...prev,
+      price: value,
+      page: 1,
+    }));
+  };
 
   ////////////////////////////////////////////////////////////////
-  // UI
+  // LOADING
+  ////////////////////////////////////////////////////////////////
+  if (loading) return <ProductsSkeleton />;
+
   ////////////////////////////////////////////////////////////////
   return (
     <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -108,29 +126,27 @@ export default function Products() {
         {/* CATEGORY */}
         <div>
           <p className="font-medium">Category</p>
-          <div className="space-y-1 text-sm">
 
-            <p>
+          <div className="space-y-1 text-sm mt-2">
+            <label className="block">
               <input
                 type="radio"
-                checked={category === ""}
-                onChange={() => handleCategoryChange("")}
-              /> All
-            </p>
+                checked={!filters.category}
+                onChange={() => handleCategory("")}
+              />
+              {" "}All
+            </label>
 
-            {categories.map((cat,i) => (
-              <p key={i}>
-                <label>
-                  <input
-                    type="radio"
-                    value={cat}
-                    checked={category === cat}
-                    onChange={() => handleCategoryChange(cat)}
-                  /> {cat}
-                </label>
-              </p>
+            {categories.map((cat, i) => (
+              <label key={i} className="block">
+                <input
+                  type="radio"
+                  checked={filters.category === cat}
+                  onChange={() => handleCategory(cat)}
+                />
+                {" "}{cat}
+              </label>
             ))}
-
           </div>
         </div>
 
@@ -141,18 +157,19 @@ export default function Products() {
             type="range"
             min="0"
             max="200000"
-            value={priceRange}
-            onChange={(e) => setPriceRange(Number(e.target.value))}
+            value={filters.price}
+            onChange={(e) => handlePrice(Number(e.target.value))}
             className="w-full"
           />
-          <p className="text-sm">Up to ₹{priceRange}</p>
+          <p className="text-sm">Up to ₹{filters.price}</p>
         </div>
+
+        {/* SORT */}
         <div>
           <p className="font-medium">Sort By</p>
-
           <select
-            value={sort}
-            onChange={(e) => handleSortChange(e.target.value)}
+            value={filters.sort}
+            onChange={(e) => handleSort(e.target.value)}
             className="w-full p-2 border rounded mt-1"
           >
             <option value="">Default</option>
@@ -166,42 +183,26 @@ export default function Products() {
       {/* PRODUCTS */}
       <div className="md:col-span-3">
         <h2 className="text-2xl font-bold mb-4">
-          {urlSearch
-            ? `Search Results for "${urlSearch}"`
-            : urlCategory
-              ? `${urlCategory} Products`
+          {filters.search
+            ? `Search: "${filters.search}"`
+            : filters.category
+              ? `${filters.category} Products`
               : "All Products"}
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
-          { products.length > 0 ? (
+          {products.length > 0 ? (
             products.map((item) => (
               <ProductCard key={item._id} product={item} />
             ))
           ) : (
-            <p>No products found 😔</p>
+            <p className="text-gray-500">No products found 😔</p>
           )}
 
         </div>
       </div>
+
     </div>
   );
-}
-
-//////////////////////////////////////////////////////////////
-// SKELETON
-//////////////////////////////////////////////////////////////
-
-function SkeletonCards() {
-  return Array(6)
-    .fill(0)
-    .map((_,i) => (
-      <div key={i} className="bg-white p-3 rounded-xl shadow animate-pulse">
-        <div className="h-48 bg-gray-300 rounded mb-3"></div>
-        <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-        <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
-        <div className="h-6 bg-gray-300 rounded w-1/3"></div>
-      </div>
-    ));
 }

@@ -1,86 +1,126 @@
 import Hero from "../components/Hero";
 import ProductCard from "../components/ProductCard";
-import API from "../services/api";
-import { useEffect,useState } from "react";
-import { getProducts, getTrendingProducts } from "../services/product"
+import { useEffect, useState } from "react";
+import {
+  getProducts,
+  getTrendingProducts,
+} from "../services/product";
 import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
 
 export default function Home() {
 
-  const [products,setProducts] = useState([]);
-  const [trendingProducts,setTrendingProducts] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [trendingProducts, setTrendingProducts] = useState([]);
+
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingTrending, setLoadingTrending] = useState(true);
 
-  useEffect(() => {
-    fetchProducts()
-    fetchTrendingProducts()
-  },[]);
-
+  ////////////////////////////////////////////////////////////////
+  // FETCH ALL PRODUCTS
+  ////////////////////////////////////////////////////////////////
   const fetchProducts = async () => {
     try {
       setLoadingProducts(true);
+
       const res = await getProducts();
-      setProducts(res.products || []);
+
+      const data =
+        res?.products ||
+        res?.data?.products ||
+        [];
+
+      setProducts(data);
+
     } catch (error) {
-      console.error(error);
+      console.error("Products fetch error:", error);
     } finally {
       setLoadingProducts(false);
     }
   };
 
-
-    const fetchTrendingProducts = async () => {
+  ////////////////////////////////////////////////////////////////
+  // FETCH TRENDING
+  ////////////////////////////////////////////////////////////////
+  const fetchTrendingProducts = async () => {
     try {
       setLoadingTrending(true);
+
       const res = await getTrendingProducts();
-      setTrendingProducts(res.products || []);
+
+      const data =
+        res?.products ||
+        res?.data?.products ||
+        [];
+
+      setTrendingProducts(data);
+
     } catch (error) {
-      console.error(error);
+      console.error("Trending fetch error:", error);
     } finally {
       setLoadingTrending(false);
     }
   };
 
+  ////////////////////////////////////////////////////////////////
+  // INIT
+  ////////////////////////////////////////////////////////////////
+  useEffect(() => {
+    fetchProducts();
+    fetchTrendingProducts();
+  }, []);
+
+  ////////////////////////////////////////////////////////////////
+  // REUSABLE GRID
+  ////////////////////////////////////////////////////////////////
+  const renderGrid = (loading, data) => {
+    if (loading) {
+      return <ProductCardSkeleton count={10} />;
+    }
+
+    if (!data || data.length === 0) {
+      return (
+        <p className="text-gray-500 col-span-full text-center">
+          No products found 😔
+        </p>
+      );
+    }
+
+    return data.map((item) => (
+      <ProductCard key={item._id} product={item} />
+    ));
+  };
+
+  ////////////////////////////////////////////////////////////////
+  // UI
+  ////////////////////////////////////////////////////////////////
   return (
-    <>
+    <div className="p-6 space-y-10">
 
-      <div className="p-6 space-y-8">
-        <Hero />
+      {/* HERO */}
+      <Hero />
 
-        <div>
-          <h2 className="text-2xl font-bold mb-4">🔥 Trending Products</h2>
+      {/* 🔥 TRENDING */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">
+          🔥 Trending Products
+        </h2>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {loadingProducts ? (
-              <ProductCardSkeleton />
-            ) : trendingProducts.length > 0 ? (
-              trendingProducts.map((item) => (
-                <ProductCard key={item._id} product={item} />
-              ))
-            ) : (
-              <p>No products found 😔</p>
-            )}
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {renderGrid(loadingTrending, trendingProducts)}
         </div>
+      </section>
 
-        <div>
-          <h2 className="text-2xl font-bold mb-4">🔥 All Products</h2>
+      {/* 📦 ALL PRODUCTS */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">
+          📦 All Products
+        </h2>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {loadingTrending ? (
-              <ProductCardSkeleton />
-            ) : products.length > 0 ? (
-              products.map((item) => (
-                <ProductCard key={item._id} product={item} />
-              ))
-            ) : (
-              <p>No products found 😔</p>
-            )}
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {renderGrid(loadingProducts, products)}
         </div>
+      </section>
 
-      </div>
-    </>
+    </div>
   );
 }
