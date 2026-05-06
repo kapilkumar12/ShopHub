@@ -32,7 +32,6 @@ export default function Home() {
     try {
       setLoading(true);
       const res = await getTrendingProducts();
-            console.log("TrendingProducts", res)
       setTrendingProducts(res.products || []);
     } catch (error) {
       console.error(error);

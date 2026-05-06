@@ -122,10 +122,6 @@ export default function Navbar() {
 
   useEffect(() => {
 
-     
-    console.log("USER:", user);
-  console.log("TOKEN:", localStorage.getItem("accessToken"));
-
     if (user) {
       fetchCartCount();
       fetchWishlistCount();// login

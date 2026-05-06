@@ -41,8 +41,6 @@ export default function AuthModal({
       } else {
         const res = await loginUser({ email,password });
 
-        console.log("LOGIN RESPONSE:", res);
-
         localStorage.setItem("accessToken",res.accessToken);
 
         setUser(res.user);

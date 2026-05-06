@@ -29,8 +29,6 @@ export default function OrderDetails() {
 
       setOrder(orderRes.order);
 
-      console.log("setOrder",orderRes.order)
-
       setTracking(trackingRes.data.tracking || []);
     } catch (err) {
       console.error(err);
