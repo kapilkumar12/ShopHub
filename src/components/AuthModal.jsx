@@ -2,6 +2,7 @@ import { useState } from "react";
 import { loginUser, registerUser } from "../services/auth";
 import Swal from "sweetalert2";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function AuthModal({
   isOpen,
@@ -15,6 +16,7 @@ export default function AuthModal({
   const [password,setPassword] = useState("");
   const [loading,setLoading] = useState(false);
   const { setUser, fetchUser } = useAuth();
+  const navigate = useNavigate();
 
   if (!isOpen) return null;
 
@@ -50,13 +52,17 @@ export default function AuthModal({
           showConfirmButton: false,
         });
         onClose();
+        navigate("/");
       }
     } catch (error) {
       Swal.fire("Error",error?.response?.data?.message || "Error","error");
+      console.log("error", error)
     } finally {
       setLoading(false);
     }
   };
+
+
 
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-black/40 backdrop-blur-sm z-50">

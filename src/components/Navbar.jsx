@@ -18,7 +18,7 @@ export default function Navbar() {
   const [otpEmail,setOtpEmail] = useState("");
   const [type,setType] = useState("login");
 
-  const { search,setSearch } = useSearch();
+  const { search,setSearch, fetchUser } = useSearch();
   const { user,setUser } = useAuth();
   const { cartCount,fetchCartCount } = useCart();
   const { wishlistCount,fetchWishlistCount } = useWishlist();
@@ -121,6 +121,11 @@ export default function Navbar() {
   };
 
   useEffect(() => {
+
+     
+    console.log("USER:", user);
+  console.log("TOKEN:", localStorage.getItem("accessToken"));
+
     if (user) {
       fetchCartCount();
       fetchWishlistCount();// login
@@ -129,6 +134,12 @@ export default function Navbar() {
       fetchWishlistCount(); // API already 0 return karegi
     }
   },[user]);
+
+  useEffect(() => {
+  if (!user && localStorage.getItem("accessToken")) {
+    fetchUser();
+  }
+}, []);
 
   return (
     <>
