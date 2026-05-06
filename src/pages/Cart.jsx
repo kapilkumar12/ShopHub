@@ -10,6 +10,7 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import CartSkeleton from "../skeletons/CartSkeleton";
 
 export default function Cart() {
   const [cart, setCart] = useState([]);
@@ -184,7 +185,7 @@ export default function Cart() {
   // UI STATES
   ////////////////////////////////////////////////////////////////
   if (loading) {
-    return <p className="text-center mt-10">Loading...</p>;
+    return <CartSkeleton />;
   }
 
   if (cart.length === 0) {

@@ -4,6 +4,7 @@ import { getCart } from "../services/cart";
 import { useNavigate,useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import Swal from "sweetalert2";
+import CheckoutSkeleton from "../skeletons/CheckoutSkeleton";
 
 export default function Checkout() {
 
@@ -161,7 +162,7 @@ export default function Checkout() {
   ////////////////////////////////////////////////////////////////
   // LOADING / EMPTY
   ////////////////////////////////////////////////////////////////
-  if (loading) return <p className="text-center mt-10">Loading...</p>;
+  if (loading) return <CheckoutSkeleton />;
 
   // ❗ FIX: only for cart flow
   if (!directBuyData?.directBuy && cart.length === 0) {

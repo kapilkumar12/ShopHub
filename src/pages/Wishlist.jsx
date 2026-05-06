@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import Swal from "sweetalert2";
+import WishlistSkeleton from "../skeletons/WishlistSkeleton";
 
 export default function Wishlist() {
 
@@ -117,7 +118,7 @@ export default function Wishlist() {
   }
 
   if (loading) {
-    return <p className="text-center mt-10">Loading...</p>;
+    return <WishlistSkeleton />;
   }
 
   if (products.length === 0) {

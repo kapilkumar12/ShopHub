@@ -3,6 +3,7 @@ import ProductCard from "../components/ProductCard";
 import API from "../services/api";
 import { useEffect,useState } from "react";
 import { getProducts, getTrendingProducts } from "../services/product"
+import ProductCartSkeleton from "../skeletons/ProductCartSkeleton";
 
 export default function Home() {
 
@@ -51,7 +52,7 @@ export default function Home() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {loading ? (
-              <SkeletonCards />
+              <ProductCartSkeleton />
             ) : trendingProducts.length > 0 ? (
               trendingProducts.map((item) => (
                 <ProductCard key={item._id} product={item} />
@@ -67,7 +68,7 @@ export default function Home() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {loading ? (
-              <SkeletonCards />
+              <ProductCartSkeleton />
             ) : products.length > 0 ? (
               products.map((item) => (
                 <ProductCard key={item._id} product={item} />
@@ -81,18 +82,4 @@ export default function Home() {
       </div>
     </>
   );
-}
-
-
-function SkeletonCards() {
-  return Array(6)
-    .fill(0)
-    .map((_,i) => (
-      <div key={i} className="bg-white p-3 rounded-xl shadow animate-pulse">
-        <div className="h-48 bg-gray-300 rounded mb-3"></div>
-        <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-        <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
-        <div className="h-6 bg-gray-300 rounded w-1/3"></div>
-      </div>
-    ));
 }

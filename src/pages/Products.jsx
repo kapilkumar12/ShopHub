@@ -3,6 +3,7 @@ import { productFilter as filterAPI } from "../services/product";
 import ProductCard from "../components/ProductCard";
 import { useSearch } from "../context/SearchContext";
 import { useLocation,useNavigate } from "react-router-dom";
+import ProductsSkeleton from "../skeletons/ProductsSkeleton";
 
 export default function Products() {
   const [products,setProducts] = useState([]);
@@ -90,6 +91,9 @@ export default function Products() {
     setSort(value);
   };
 
+  if (loading) {
+  return <ProductsSkeleton />;
+}
 
   ////////////////////////////////////////////////////////////////
   // UI
@@ -171,9 +175,7 @@ export default function Products() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
-          {loading ? (
-            <SkeletonCards />
-          ) : products.length > 0 ? (
+          { products.length > 0 ? (
             products.map((item) => (
               <ProductCard key={item._id} product={item} />
             ))

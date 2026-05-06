@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getOrders } from "../services/order";
 import { useNavigate } from "react-router-dom";
+import OrdersSkeleton from "../skeletons/OrdersSkeleton";
 
 export default function Orders() {
 
@@ -40,9 +41,7 @@ export default function Orders() {
 
   if (loading) {
     return (
-      <p className="text-center mt-10 text-gray-500">
-        Loading orders...
-      </p>
+      <OrdersSkeleton />
     );
   }
 
