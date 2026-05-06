@@ -3,7 +3,7 @@ import ProductCard from "../components/ProductCard";
 import API from "../services/api";
 import { useEffect,useState } from "react";
 import { getProducts, getTrendingProducts } from "../services/product"
-import {ProductCartSkeleton} from "../skeletons/ProductCartSkeleton";
+import {ProductCardSkeleton} from "../skeletons/ProductCardSkeleton";
 
 export default function Home() {
 
@@ -52,7 +52,7 @@ export default function Home() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {loading ? (
-              <ProductCartSkeleton />
+              <ProductCardSkeleton />
             ) : trendingProducts.length > 0 ? (
               trendingProducts.map((item) => (
                 <ProductCard key={item._id} product={item} />
@@ -68,7 +68,7 @@ export default function Home() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {loading ? (
-              <ProductCartSkeleton />
+              <ProductCardSkeleton />
             ) : products.length > 0 ? (
               products.map((item) => (
                 <ProductCard key={item._id} product={item} />
