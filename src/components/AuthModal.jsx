@@ -15,7 +15,7 @@ export default function AuthModal({
   const [email,setEmail] = useState("");
   const [password,setPassword] = useState("");
   const [loading,setLoading] = useState(false);
-  const { setUser, fetchUser } = useAuth();
+  const { setUser } = useAuth();
   const navigate = useNavigate();
 
   if (!isOpen) return null;
@@ -41,9 +41,11 @@ export default function AuthModal({
       } else {
         const res = await loginUser({ email,password });
 
-        localStorage.setItem("accessToken",res.data.accessToken);
+        console.log("LOGIN RESPONSE:", res);
 
-        setUser(res.data.user);
+        localStorage.setItem("accessToken",res.accessToken);
+
+        setUser(res.user);
 
         await Swal.fire({
           icon: "success",
@@ -56,7 +58,6 @@ export default function AuthModal({
       }
     } catch (error) {
       Swal.fire("Error",error?.response?.data?.message || "Error","error");
-      console.log("error", error)
     } finally {
       setLoading(false);
     }
