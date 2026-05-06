@@ -1,120 +1,102 @@
-import { useEffect, useState, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect,useState,useCallback } from "react";
 import { productFilter as filterAPI } from "../services/product";
 import ProductCard from "../components/ProductCard";
 import { useSearch } from "../context/SearchContext";
+import { useLocation,useNavigate } from "react-router-dom";
 import ProductsSkeleton from "../skeletons/ProductsSkeleton";
 
 export default function Products() {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [products,setProducts] = useState([]);
+  const [categories,setCategories] = useState([]);
+  const [loading,setLoading] = useState(true);
 
-  const { setSearch } = useSearch();
+  // filters
+  const { search, setSearch } = useSearch();
+  const [category,setCategory] = useState("");
+  const [priceRange,setPriceRange] = useState(200000);
+  const [sort,setSort] = useState("");
+  const [page,setPage] = useState(1);
+
   const location = useLocation();
   const navigate = useNavigate();
 
-  // filters
-  const [filters, setFilters] = useState({
-    category: "",
-    price: 200000,
-    sort: "",
-    page: 1,
-    search: "",
-  });
+  const queryParams = new URLSearchParams(location.search);
 
-  const query = new URLSearchParams(location.search);
-  const urlSearch = query.get("search") || "";
-  const urlCategory = query.get("category") || "";
+  const urlSearch = queryParams.get("search") || "";
+  const urlCategory = queryParams.get("category") || "";
+
+    useEffect(() => {
+    setCategory(urlCategory);
+  }, [urlCategory]);
 
   ////////////////////////////////////////////////////////////////
-  // sync URL → state
-  ////////////////////////////////////////////////////////////////
-  useEffect(() => {
-    setFilters((prev) => ({
-      ...prev,
-      category: urlCategory,
-      search: urlSearch,
-      page: 1,
-    }));
-  }, [urlSearch, urlCategory]);
-
-  ////////////////////////////////////////////////////////////////
-  // FETCH PRODUCTS (stable + clean)
+  // 🔥 FETCH (ONLY ONE API)
   ////////////////////////////////////////////////////////////////
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
 
-      const res = await filterAPI({
-        search: filters.search,
-        category: filters.category,
-        sort: filters.sort,
+      const data = await filterAPI({
+        search: category ? "" : urlSearch,
+        category: category,
+        sort,
         minPrice: 0,
-        maxPrice: filters.price,
-        page: filters.page,
+        maxPrice: priceRange,
+        page
       });
 
-      setProducts(res?.products ?? []);
-      setCategories(res?.categories ?? []);
+      // ✅ directly use API response
+      setProducts(data?.products || []);
+      setCategories(data?.categories || []);
 
-    } catch (err) {
-      console.error("Product fetch failed:", err);
+    } catch (error) {
+      console.error("Filter failed:",error);
       setProducts([]);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  },[urlSearch,category,priceRange,page,sort]);
 
   ////////////////////////////////////////////////////////////////
-  // debounce fetch
+  // AUTO FETCH
   ////////////////////////////////////////////////////////////////
   useEffect(() => {
-    const timer = setTimeout(fetchProducts, 300);
-    return () => clearTimeout(timer);
-  }, [fetchProducts]);
+    const delay = setTimeout(fetchProducts,400);
+    return () => clearTimeout(delay);
+  },[fetchProducts]);
 
-  ////////////////////////////////////////////////////////////////
-  // handlers (clean reducer style)
-  ////////////////////////////////////////////////////////////////
-  const handleCategory = (cat) => {
+
+  useEffect(() => {
+
+    if (!urlSearch) return;
+    setCategory("");
+    setPriceRange(200000);
+    setSort("");
+    setPage(1);
+
+  },[urlSearch]);
+
+
+  const handleCategoryChange = (cat) => {
     setSearch("");
-
-    setFilters((prev) => ({
-      ...prev,
-      category: cat,
-      search: "",
-      page: 1,
-    }));
-
-    if (cat) {
-      navigate(`/products?category=${encodeURIComponent(cat)}`);
+    setCategory(cat);
+    if (!cat) {
+      navigate("/products"); // reset
     } else {
-      navigate("/products");
+      navigate(`/products?category=${encodeURIComponent(cat)}`);
     }
   };
 
-  const handleSort = (value) => {
-    setFilters((prev) => ({
-      ...prev,
-      sort: value,
-      page: 1,
-    }));
+  const handleSortChange = (value) => {
+    setSort(value);
   };
 
-  const handlePrice = (value) => {
-    setFilters((prev) => ({
-      ...prev,
-      price: value,
-      page: 1,
-    }));
-  };
+  if (loading) {
+  return <ProductsSkeleton />;
+}
 
   ////////////////////////////////////////////////////////////////
-  // LOADING
-  ////////////////////////////////////////////////////////////////
-  if (loading) return <ProductsSkeleton />;
-
+  // UI
   ////////////////////////////////////////////////////////////////
   return (
     <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -126,27 +108,29 @@ export default function Products() {
         {/* CATEGORY */}
         <div>
           <p className="font-medium">Category</p>
+          <div className="space-y-1 text-sm">
 
-          <div className="space-y-1 text-sm mt-2">
-            <label className="block">
+            <p>
               <input
                 type="radio"
-                checked={!filters.category}
-                onChange={() => handleCategory("")}
-              />
-              {" "}All
-            </label>
+                checked={category === ""}
+                onChange={() => handleCategoryChange("")}
+              /> All
+            </p>
 
-            {categories.map((cat, i) => (
-              <label key={i} className="block">
-                <input
-                  type="radio"
-                  checked={filters.category === cat}
-                  onChange={() => handleCategory(cat)}
-                />
-                {" "}{cat}
-              </label>
+            {categories.map((cat,i) => (
+              <p key={i}>
+                <label>
+                  <input
+                    type="radio"
+                    value={cat}
+                    checked={category === cat}
+                    onChange={() => handleCategoryChange(cat)}
+                  /> {cat}
+                </label>
+              </p>
             ))}
+
           </div>
         </div>
 
@@ -157,19 +141,18 @@ export default function Products() {
             type="range"
             min="0"
             max="200000"
-            value={filters.price}
-            onChange={(e) => handlePrice(Number(e.target.value))}
+            value={priceRange}
+            onChange={(e) => setPriceRange(Number(e.target.value))}
             className="w-full"
           />
-          <p className="text-sm">Up to ₹{filters.price}</p>
+          <p className="text-sm">Up to ₹{priceRange}</p>
         </div>
-
-        {/* SORT */}
         <div>
           <p className="font-medium">Sort By</p>
+
           <select
-            value={filters.sort}
-            onChange={(e) => handleSort(e.target.value)}
+            value={sort}
+            onChange={(e) => handleSortChange(e.target.value)}
             className="w-full p-2 border rounded mt-1"
           >
             <option value="">Default</option>
@@ -183,26 +166,42 @@ export default function Products() {
       {/* PRODUCTS */}
       <div className="md:col-span-3">
         <h2 className="text-2xl font-bold mb-4">
-          {filters.search
-            ? `Search: "${filters.search}"`
-            : filters.category
-              ? `${filters.category} Products`
+          {urlSearch
+            ? `Search Results for "${urlSearch}"`
+            : urlCategory
+              ? `${urlCategory} Products`
               : "All Products"}
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
-          {products.length > 0 ? (
+          { products.length > 0 ? (
             products.map((item) => (
               <ProductCard key={item._id} product={item} />
             ))
           ) : (
-            <p className="text-gray-500">No products found 😔</p>
+            <p>No products found 😔</p>
           )}
 
         </div>
       </div>
-
     </div>
   );
+}
+
+//////////////////////////////////////////////////////////////
+// SKELETON
+//////////////////////////////////////////////////////////////
+
+function SkeletonCards() {
+  return Array(6)
+    .fill(0)
+    .map((_,i) => (
+      <div key={i} className="bg-white p-3 rounded-xl shadow animate-pulse">
+        <div className="h-48 bg-gray-300 rounded mb-3"></div>
+        <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+        <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
+        <div className="h-6 bg-gray-300 rounded w-1/3"></div>
+      </div>
+    ));
 }
