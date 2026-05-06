@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 import { downloadInvoice } from "../utils/generateInvoice";
-import OrderDetailsSkeleton from "../skeletons/OrderDetailsSkeleton";
+import {OrderDetailsSkeleton} from "../skeletons/OrderDetailsSkeleton";
 
 
 export default function OrderDetails() {

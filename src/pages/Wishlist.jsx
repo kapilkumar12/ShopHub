@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import Swal from "sweetalert2";
-import ProductCardSkeleton from "../skeletons/ProductCartSkeleton";
+import {ProductCardSkeleton} from "../skeletons/ProductCartSkeleton";
 
 export default function Wishlist() {
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getOrders } from "../services/order";
 import { useNavigate } from "react-router-dom";
-import OrdersSkeleton from "../skeletons/OrdersSkeleton";
+import {OrdersSkeleton} from "../skeletons/OrdersSkeleton";
 
 export default function Orders() {
 

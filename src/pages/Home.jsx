@@ -3,7 +3,7 @@ import ProductCard from "../components/ProductCard";
 import API from "../services/api";
 import { useEffect,useState } from "react";
 import { getProducts, getTrendingProducts } from "../services/product"
-import ProductCartSkeleton from "../skeletons/ProductCartSkeleton";
+import {ProductCartSkeleton} from "../skeletons/ProductCartSkeleton";
 
 export default function Home() {
 

@@ -3,7 +3,7 @@ import { productFilter as filterAPI } from "../services/product";
 import ProductCard from "../components/ProductCard";
 import { useSearch } from "../context/SearchContext";
 import { useLocation,useNavigate } from "react-router-dom";
-import ProductsSkeleton from "../skeletons/ProductsSkeleton";
+import {ProductsSkeleton} from "../skeletons/ProductsSkeleton";
 
 export default function Products() {
   const [products,setProducts] = useState([]);
