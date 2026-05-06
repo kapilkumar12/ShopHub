@@ -24,53 +24,34 @@ export default function Wishlist() {
   // FETCH WISHLIST
   ////////////////////////////////////////////////////////////////
   useEffect(() => {
-    if (!user) return;
+    if (!user?._id) return;
 
-    fetchWishlist();
-  },[user]);
+    const fetch = async () => {
+      try {
+        const res = await getWishlist();
+        setProducts(res?.products || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchWishlist = async () => {
-    try {
-      const res = await getWishlist();
-      const products =
-        res?.products ||
-        res?.data?.products ||
-        res?.payload?.products ||
-        [];
-
-      setProducts(products);
-
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetch();
+  }, [user]);
 
   ////////////////////////////////////////////////////////////////
   // REMOVE FROM WISHLIST
   ////////////////////////////////////////////////////////////////
-  const handleRemove = async (productId) => {
+  const handleRemove = async (id) => {
     try {
-      await wishlistToggle(productId);
+      await wishlistToggle(id);
 
-      // 🔥 UI update
-      setProducts((prev) =>
-        prev.filter((p) => p._id !== productId)
-      );
-
-      // 🔥 Navbar count sync
+      setProducts((p) => p.filter((x) => x?._id !== id));
       await fetchWishlistCount();
 
-      Swal.fire({
-        icon: "success",
-        title: "Removed from Wishlist",
-        timer: 800,
-        showConfirmButton: false,
-      });
-
     } catch {
-      Swal.fire("Error","Failed to remove","error");
+      Swal.fire("Error", "Failed", "error");
     }
   };
 
@@ -78,37 +59,22 @@ export default function Wishlist() {
   // ADD TO CART + REMOVE FROM WISHLIST
   ////////////////////////////////////////////////////////////////
   const handleAddToCart = async (product) => {
-    if (!user) {
-      Swal.fire("Login Required");
-      return;
-    }
+    if (!user) return Swal.fire("Login required");
 
     try {
       // 🛒 Add to cart
-      await addToCart({
-        productId: product._id,
-        quantity: 1,
-      });
+       await addToCart({ productId: product?._id, quantity: 1 });
 
       updateCartCount(1);
       await fetchCartCount();
 
       // ❤️ Remove from wishlist (AUTO)
-      await wishlistToggle(product._id);
+      await wishlistToggle(product?._id);
 
-      setProducts((prev) =>
-        prev.filter((p) => p._id !== product._id)
-      );
+      setProducts((p) => p.filter((x) => x?._id !== product?._id));
 
       // 🔥 update wishlist count
       await fetchWishlistCount();
-
-      Swal.fire({
-        icon: "success",
-        title: "Added to Cart 🛒",
-        timer: 800,
-        showConfirmButton: false,
-      });
 
       navigate("/cart");
 
@@ -132,7 +98,7 @@ if (loading) {
     );
   }
 
-  if (products.length === 0) {
+  if (products?.length === 0) {
     return (
       <div className="text-center mt-20">
         <h2 className="text-xl font-semibold">

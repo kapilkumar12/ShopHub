@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   getCart,
   updateCartItem,
@@ -13,16 +13,18 @@ import { useCart } from "../context/CartContext";
 import CartSkeleton from "../skeletons/CartSkeleton";
 
 export default function Cart() {
+
   const [cart, setCart] = useState([]);
   const [summary, setSummary] = useState({
     subtotal: 0,
     gst: 0,
     total: 0,
   });
+
   const [relatedProducts, setRelatedProducts] = useState([]);
 
   const [loading, setLoading] = useState(true);
-  const [loadingId, setLoadingId] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
 
   const { user } = useAuth();
   const { updateCartCount } = useCart();
@@ -30,49 +32,9 @@ export default function Cart() {
   const navigate = useNavigate();
 
   ////////////////////////////////////////////////////////////////
-  // 🔥 FETCH CART
+  // 🧠 CALCULATE SUMMARY (SINGLE SOURCE)
   ////////////////////////////////////////////////////////////////
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
-  const fetchCart = async () => {
-    try {
-      const res = await getCart();
-
-      const items = res?.items || [];
-      setCart(items);
-
-      updateSummary(items);
-      updateCartCount(items); // 🔥 navbar sync
-
-      if (items.length > 0) {
-        fetchRelated(items[0]?.product?._id);
-      }
-
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  ////////////////////////////////////////////////////////////////
-  // 🔥 RELATED PRODUCTS
-  ////////////////////////////////////////////////////////////////
-  const fetchRelated = async (id) => {
-    try {
-      const res = await getRelatedProducts(id);
-      setRelatedProducts(res?.products || res || []);
-    } catch (err) {
-      console.log("Related fetch failed");
-    }
-  };
-
-  ////////////////////////////////////////////////////////////////
-  // 🔥 SUMMARY CALCULATION
-  ////////////////////////////////////////////////////////////////
-  const updateSummary = (items) => {
+  const calculateSummary = (items) => {
     let subtotal = 0;
     let gst = 0;
 
@@ -83,51 +45,90 @@ export default function Cart() {
       gst += (price.gstAmount || 0) * item.quantity;
     });
 
-    setSummary({
+    return {
       subtotal,
       gst,
       total: subtotal + gst,
-    });
+    };
   };
 
   ////////////////////////////////////////////////////////////////
-  // 🔥 QUANTITY UPDATE (LIVE)
+  // 🚀 FETCH CART
   ////////////////////////////////////////////////////////////////
-  const handleQuantity = async (productId, quantity) => {
-    if (quantity < 1) return;
-
+  const fetchCart = useCallback(async () => {
     try {
-      setLoadingId(productId);
+      setLoading(true);
 
-      await updateCartItem(productId, quantity);
+      const res = await getCart();
 
-      setCart((prev) => {
-        const updated = prev.map((item) => {
-          if (item.product._id === productId) {
-            return {
-              ...item,
-              quantity,
-              total: item.pricing.finalPrice * quantity,
-            };
-          }
-          return item;
-        });
+      const items = res?.items || [];
 
-        updateSummary(updated);
-        updateCartCount(updated);
+      setCart(items);
+      setSummary(calculateSummary(items));
+      updateCartCount(items);
 
-        return updated;
-      });
+      // 👉 only once
+      if (items[0]?.product?._id) {
+        fetchRelated(items[0].product._id);
+      }
 
     } catch (err) {
       console.error(err);
     } finally {
-      setLoadingId(null);
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
+
+  ////////////////////////////////////////////////////////////////
+  // 🔥 RELATED PRODUCTS
+  ////////////////////////////////////////////////////////////////
+  const fetchRelated = async (id) => {
+    try {
+      const res = await getRelatedProducts(id);
+      setRelatedProducts(res?.products || []);
+    } catch {}
+  };
+
+  ////////////////////////////////////////////////////////////////
+  // 🔥 UPDATE QUANTITY (OPTIMISTIC)
+  ////////////////////////////////////////////////////////////////
+  const handleQuantity = async (productId, newQty) => {
+    if (newQty < 1) return;
+
+    setUpdatingId(productId);
+
+    // 🔥 optimistic update
+    let updatedCart;
+
+    setCart((prev) => {
+      updatedCart = prev.map((item) =>
+        item.product._id === productId
+          ? { ...item, quantity: newQty }
+          : item
+      );
+
+      setSummary(calculateSummary(updatedCart));
+      updateCartCount(updatedCart);
+
+      return updatedCart;
+    });
+
+    try {
+      await updateCartItem(productId, newQty);
+    } catch (err) {
+      console.error(err);
+      fetchCart(); // rollback
+    } finally {
+      setUpdatingId(null);
     }
   };
 
   ////////////////////////////////////////////////////////////////
-  // 🔥 REMOVE ITEM
+  // ❌ REMOVE ITEM
   ////////////////////////////////////////////////////////////////
   const handleRemove = async (productId) => {
     const result = await Swal.fire({
@@ -139,44 +140,28 @@ export default function Cart() {
     if (!result.isConfirmed) return;
 
     try {
+      const updated = cart.filter(
+        (item) => item.product._id !== productId
+      );
+
+      setCart(updated);
+      setSummary(calculateSummary(updated));
+      updateCartCount(updated);
+
       await removeFromCart(productId);
-
-      setCart((prev) => {
-        const updated = prev.filter(
-          (item) => item.product._id !== productId
-        );
-
-        updateSummary(updated);
-        updateCartCount(updated);
-
-        return updated;
-      });
-
-      Swal.fire({
-        icon: "success",
-        title: "Removed",
-        timer: 1000,
-        showConfirmButton: false,
-      });
 
     } catch (err) {
       console.error(err);
+      fetchCart(); // rollback
     }
   };
 
   ////////////////////////////////////////////////////////////////
-  // 🔥 CHECKOUT
+  // 🧾 CHECKOUT
   ////////////////////////////////////////////////////////////////
   const handleCheckout = () => {
-    if (!user) {
-      Swal.fire("Login Required");
-      return;
-    }
-
-    if (cart.length === 0) {
-      Swal.fire("Cart empty");
-      return;
-    }
+    if (!user) return Swal.fire("Login Required");
+    if (cart.length === 0) return Swal.fire("Cart Empty");
 
     navigate("/checkout");
   };
@@ -184,9 +169,7 @@ export default function Cart() {
   ////////////////////////////////////////////////////////////////
   // UI STATES
   ////////////////////////////////////////////////////////////////
-  if (loading) {
-    return <CartSkeleton />;
-  }
+  if (loading) return <CartSkeleton />;
 
   if (cart.length === 0) {
     return <p className="text-center mt-10">🛒 Cart is empty</p>;
@@ -196,18 +179,19 @@ export default function Cart() {
   // UI
   ////////////////////////////////////////////////////////////////
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto grid lg:grid-cols-3 gap-6">
 
-      {/* ================= LEFT ================= */}
+      {/* LEFT */}
       <div className="lg:col-span-2 space-y-4">
+
         {cart.map((item) => {
-          const p = item.product;
+          const p = item.product || {};
           const price = item.pricing || {};
 
           return (
             <div
               key={p._id}
-              className="flex flex-col md:flex-row justify-between bg-white p-4 rounded-xl shadow gap-4"
+              className="flex justify-between bg-white p-4 rounded-xl shadow"
             >
 
               {/* PRODUCT */}
@@ -215,44 +199,28 @@ export default function Cart() {
                 <img
                   src={p.images?.[0]?.url}
                   className="w-24 h-24 object-cover rounded"
-                  loading="lazy"
                 />
 
                 <div>
                   <h3 className="font-semibold">{p.name}</h3>
 
-                  <div className="text-sm mt-1">
-                    <span className="line-through text-gray-400 mr-2">
-                     ₹{Math.round(price.mrp || 0)}
-                    </span>
-
-                    <span className="text-red-600 font-bold">
-                      ₹{Math.round(price.sellingPrice || 0)}
-                    </span>
-
-                    <span className="text-green-600 ml-2 text-xs">
-                      {price.discount || 0}% OFF
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-gray-500">
-                    GST: ₹{Math.round(price.gstAmount || 0)}
+                  <p className="text-sm text-gray-500">
+                    ₹{price.sellingPrice}
                   </p>
 
-                  <p className="text-xs font-semibold">
-                    Final: ₹{Math.round(price.finalPrice || 0)}
+                  <p className="text-xs">
+                    GST: ₹{price.gstAmount}
                   </p>
                 </div>
               </div>
 
-              {/* QUANTITY */}
+              {/* QTY */}
               <div className="flex items-center gap-2">
                 <button
-                  disabled={loadingId === p._id}
+                  disabled={updatingId === p._id}
                   onClick={() =>
                     handleQuantity(p._id, item.quantity - 1)
                   }
-                  className="px-3 py-1 bg-gray-200 rounded"
                 >
                   -
                 </button>
@@ -260,21 +228,20 @@ export default function Cart() {
                 <span>{item.quantity}</span>
 
                 <button
-                  disabled={loadingId === p._id}
+                  disabled={updatingId === p._id}
                   onClick={() =>
                     handleQuantity(p._id, item.quantity + 1)
                   }
-                  className="px-3 py-1 bg-gray-200 rounded"
                 >
                   +
                 </button>
               </div>
 
               {/* TOTAL */}
-              <div className="flex flex-col items-end gap-2">
-                <span className="font-bold">
-                  ₹{Math.round(item.total || price.finalPrice * item.quantity)}
-                </span>
+              <div className="text-right">
+                <p className="font-bold">
+                  ₹{price.finalPrice * item.quantity}
+                </p>
 
                 <button
                   onClick={() => handleRemove(p._id)}
@@ -287,53 +254,50 @@ export default function Cart() {
             </div>
           );
         })}
+
       </div>
 
-      {/* ================= RIGHT ================= */}
-      <div className="bg-white p-4 rounded-xl shadow h-fit sticky top-6">
-        <h3 className="text-lg font-bold mb-3">
-          Order Summary
-        </h3>
+      {/* RIGHT */}
+      <div className="bg-white p-4 rounded-xl shadow h-fit">
 
-        <div className="text-sm space-y-2">
+        <h3 className="font-bold mb-3">Order Summary</h3>
+
+        <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span>Subtotal</span>
-            <span>₹{Math.round(summary.subtotal)}</span>
+            <span>₹{summary.subtotal}</span>
           </div>
 
           <div className="flex justify-between">
             <span>GST</span>
-            <span>₹{Math.round(summary.gst)}</span>
+            <span>₹{summary.gst}</span>
           </div>
 
           <div className="flex justify-between font-bold text-lg border-t pt-2">
             <span>Total</span>
-            <span>₹{Math.round(summary.total)}</span>
+            <span>₹{summary.total}</span>
           </div>
         </div>
 
         <button
           onClick={handleCheckout}
-          className="w-full mt-4 bg-green-600 text-white py-2 rounded-lg"
+          className="w-full mt-4 bg-green-600 text-white py-2 rounded"
         >
-          Proceed to Checkout
+          Checkout
         </button>
+
       </div>
 
-      {/* ================= RELATED ================= */}
+      {/* RELATED */}
       <div className="lg:col-span-3 mt-10">
         <h2 className="text-xl font-bold mb-4">
           You might also like
         </h2>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {relatedProducts?.length > 0 ? (
-            relatedProducts.map((p) => (
-              <ProductCard key={p._id} product={p} />
-            ))
-          ) : (
-            <p>No related products</p>
-          )}
+          {relatedProducts.map((p) => (
+            <ProductCard key={p._id} product={p} />
+          ))}
         </div>
       </div>
 

@@ -1,7 +1,7 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { getSingleOrder,cancelOrder } from "../services/order";
-import API from "../services/api"; // ❗ missing tha
+import { getSingleOrder, cancelOrder } from "../services/order";
+import API from "../services/api";
 import socket from "../services/socket";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
@@ -9,31 +9,32 @@ import Swal from "sweetalert2";
 import { downloadInvoice } from "../utils/generateInvoice";
 import OrderDetailsSkeleton from "../skeletons/OrderDetailsSkeleton";
 
-
 export default function OrderDetails() {
+
   const { id } = useParams();
-  const { user } = useAuth(); // ✅ REQUIRED
+  const { user } = useAuth();
 
-  const [order,setOrder] = useState(null);
-  const [loading,setLoading] = useState(true);
-  const [tracking,setTracking] = useState([]);
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [tracking, setTracking] = useState([]);
 
-
+  ////////////////////////////////////////////////////////////////
+  // 🚀 FETCH DATA
+  ////////////////////////////////////////////////////////////////
   const fetchAll = async () => {
     try {
       setLoading(true);
 
-      const [orderRes,trackingRes] = await Promise.all([
+      const [orderRes, trackRes] = await Promise.all([
         getSingleOrder(id),
-        API.get(`/orders/tracking/${id}`)
+        API.get(`/orders/tracking/${id}`),
       ]);
 
-      setOrder(orderRes.order);
+      setOrder(orderRes?.order || null);
+      setTracking(trackRes?.data?.tracking || []);
 
-      setTracking(trackingRes.data.tracking || []);
     } catch (err) {
-      console.error(err);
-      showError("Failed to load order");
+      toast.error("Failed to load order");
     } finally {
       setLoading(false);
     }
@@ -41,114 +42,123 @@ export default function OrderDetails() {
 
   useEffect(() => {
     fetchAll();
-  },[id]);
+  }, [id]);
 
-  // 🔥 SOCKET.IO REAL-TIME
+  ////////////////////////////////////////////////////////////////
+  // 🔥 SOCKET (FIXED MEMORY LEAK)
+  ////////////////////////////////////////////////////////////////
   useEffect(() => {
     if (!id) return;
 
-    // order room join
-    socket.emit("joinOrderRoom",id);
+    socket.emit("joinOrderRoom", id);
 
-    socket.on("orderStatusUpdated",(data) => {
-      if (data.orderId === id) {
+    const handleStatusUpdate = (data) => {
+      if (data?.orderId === id) {
         toast.success(`Order ${data.status}`);
         fetchAll();
       }
-    });
+    };
+
+    socket.on("orderStatusUpdated", handleStatusUpdate);
 
     return () => {
-      socket.off("orderStatusUpdated");
+      socket.off("orderStatusUpdated", handleStatusUpdate);
     };
-  },[id]);
+  }, [id]);
 
+  ////////////////////////////////////////////////////////////////
   // 🔔 USER NOTIFICATIONS
+  ////////////////////////////////////////////////////////////////
   useEffect(() => {
     if (!user?._id) return;
 
-    socket.emit("joinUserRoom",user._id);
+    socket.emit("joinUserRoom", user._id);
 
-    socket.on("newNotification",(data) => {
-      toast.success(data.message);
-    });
+    const handleNotification = (data) => {
+      toast.success(data?.message || "Notification");
+    };
+
+    socket.on("newNotification", handleNotification);
 
     return () => {
-      socket.off("newNotification");
+      socket.off("newNotification", handleNotification);
     };
-  },[user]);
+  }, [user?._id]);
 
-
+  ////////////////////////////////////////////////////////////////
+  // ❌ CANCEL ORDER
+  ////////////////////////////////////////////////////////////////
   const handleCancelOrder = async () => {
     const { value: reason } = await Swal.fire({
       title: "Cancel Order",
       input: "textarea",
-      inputLabel: "Reason for cancellation",
-      inputPlaceholder: "Enter reason...",
-      inputAttributes: {
-        "aria-label": "Type your reason here"
-      },
+      inputPlaceholder: "Reason...",
       showCancelButton: true,
       confirmButtonText: "Cancel Order",
     });
 
-    if (!reason) {
-      Swal.fire("Reason required");
-      return;
-    }
+    if (!reason) return;
 
     try {
-      await cancelOrder(order._id,reason);
-
-      Swal.fire({
-        icon: "success",
-        title: "Order Cancelled",
-      });
-
+      await cancelOrder(order._id, reason);
+      Swal.fire("Cancelled", "Order cancelled", "success");
       fetchAll();
-
-    } catch (err) {
-      console.error(err);
+    } catch {
+      Swal.fire("Error", "Cancel failed", "error");
     }
   };
 
+  ////////////////////////////////////////////////////////////////
+  // 📦 SAFE HELPERS
+  ////////////////////////////////////////////////////////////////
+  const steps = useMemo(
+    () => ["pending", "confirmed", "shipped", "delivered"],
+    []
+  );
 
-  // 📅 Estimated Delivery
+  const currentStepIndex = useMemo(() => {
+    return steps.indexOf(order?.status);
+  }, [order?.status, steps]);
+
+  const isCancelled = order?.status === "cancelled";
+
   const getEstimatedDate = () => {
     if (!order?.createdAt) return "";
 
     const date = new Date(order.createdAt);
 
-    let days = 5;
-    if (order.status === "confirmed") days = 4;
-    if (order.status === "shipped") days = 2;
-    if (order.status === "delivered") days = 0;
+    const map = {
+      pending: 5,
+      confirmed: 4,
+      shipped: 2,
+      delivered: 0,
+    };
+
+    const days = map[order.status] ?? 5;
 
     date.setDate(date.getDate() + days);
-
     return date.toDateString();
   };
 
+  ////////////////////////////////////////////////////////////////
+  // ⏳ LOADING
+  ////////////////////////////////////////////////////////////////
+  if (loading) return <OrderDetailsSkeleton />;
 
-  // 📊 Steps
-  const steps = ["pending","confirmed","shipped","delivered"];
-  const currentStepIndex = steps.indexOf(order?.status);
-  const isCancelled = order?.status === "cancelled";
-
-  // 📄 Invoice
-
-
-  // ⏳ Loading
-  if (loading)
-    return <OrderDetailsSkeleton />;
-
-  // ❌ Not found
-  if (!order)
+  ////////////////////////////////////////////////////////////////
+  // ❌ NOT FOUND
+  ////////////////////////////////////////////////////////////////
+  if (!order) {
     return (
       <p className="text-center mt-10 text-red-500">
         Order not found
       </p>
     );
+  }
 
+  ////////////////////////////////////////////////////////////////
+  // UI
+  ////////////////////////////////////////////////////////////////
   return (
     <div className="p-6 max-w-5xl mx-auto">
 
@@ -156,43 +166,41 @@ export default function OrderDetails() {
         📦 Order Details
       </h2>
 
-      {/* 📊 TRACKING */}
-      <div className="bg-white p-5 rounded-2xl shadow mb-6">
+      {/* ================= TRACKING ================= */}
+      <div className="bg-white p-5 rounded-xl shadow mb-6">
+
         <h3 className="font-bold mb-4">Tracking</h3>
 
         {isCancelled ? (
-          <p className="text-center text-red-500 font-semibold text-lg">
+          <p className="text-red-500 font-semibold text-center">
             ❌ Order Cancelled
           </p>
         ) : (
-          <div className="flex justify-between items-center relative">
+          <div className="flex justify-between relative">
 
-            {steps.map((step,index) => (
+            {steps.map((step, i) => (
               <div key={step} className="flex-1 text-center relative">
 
-                {/* Line */}
-                {index !== 0 && (
+                {i !== 0 && (
                   <div
-                    className={`absolute top-2 left-0 w-full h-1 
-                    ${index <= currentStepIndex
+                    className={`absolute top-2 left-0 w-full h-1 ${
+                      i <= currentStepIndex
                         ? "bg-green-500"
                         : "bg-gray-300"
-                      }`}
+                    }`}
                   />
                 )}
 
-                {/* Circle */}
                 <div
-                  className={`w-6 h-6 mx-auto rounded-full z-10 relative 
-                  ${index <= currentStepIndex
+                  className={`w-6 h-6 mx-auto rounded-full relative z-10 ${
+                    i <= currentStepIndex
                       ? "bg-green-500"
                       : "bg-gray-300"
-                    }`}
+                  }`}
                 />
 
-                <p className="text-sm mt-2 capitalize">
-                  {step}
-                </p>
+                <p className="text-sm mt-2 capitalize">{step}</p>
+
               </div>
             ))}
 
@@ -207,76 +215,70 @@ export default function OrderDetails() {
 
       </div>
 
-      {/* 📦 ITEMS */}
-      <div className="bg-white p-5 rounded-2xl shadow mb-6">
+      {/* ================= ITEMS ================= */}
+      <div className="bg-white p-5 rounded-xl shadow mb-6">
+
         <h3 className="font-bold mb-4">Items</h3>
 
-        {order.items.map((item,index) => (
+        {order?.items?.map((item, i) => (
           <div
-            key={index}
-            className="flex justify-between border-b py-2 gap-3 items-center"
+            key={i}
+            className="flex justify-between border-b py-2 items-center"
           >
-            <img src={item?.productId?.images[0]?.url} alt={item?.productId?.name} className="w-16 h-16 object-cover rounded" loading="lazy" />
+            <img
+              src={item?.productId?.images?.[0]?.url}
+              className="w-14 h-14 object-cover rounded"
+              loading="lazy"
+            />
+
             <span>
-              {item.name} x {item.quantity}
+              {item?.name} × {item?.quantity}
             </span>
+
             <span>
-              ₹{item.price * item.quantity}
+              ₹{(item?.price || 0) * (item?.quantity || 0)}
             </span>
+
           </div>
         ))}
 
-        <div className="mt-4 flex justify-between font-bold text-lg">
+        <div className="mt-4 flex justify-between font-bold">
           <span>Total</span>
-          <span>₹{order.totalPrice}</span>
+          <span>₹{order?.totalPrice}</span>
         </div>
+
       </div>
 
-      {/* 🏠 ADDRESS */}
-      <div className="bg-white p-5 rounded-2xl shadow mb-6">
-        <h3 className="font-bold mb-2">
-          Shipping Address
-        </h3>
-        <p>{order.address}</p>
-        <p className="text-gray-500 text-sm">
-          {order.phone}
-        </p>
+      {/* ================= ADDRESS ================= */}
+      <div className="bg-white p-5 rounded-xl shadow mb-6">
+        <h3 className="font-bold mb-2">Shipping Address</h3>
+        <p>{order?.address}</p>
+        <p className="text-sm text-gray-500">{order?.phone}</p>
       </div>
 
-      {/* 💳 PAYMENT */}
-      <div className="bg-white p-5 rounded-2xl shadow mb-6">
-        <h3 className="font-bold mb-2">
-          Payment Info
-        </h3>
-        <p>
-          Method:{" "}
-          <span className="capitalize">
-            {order.paymentMethod}
-          </span>
-        </p>
-        <p>
-          Status:{" "}
-          <span className="capitalize">
-            {order.paymentStatus}
-          </span>
-        </p>
+      {/* ================= PAYMENT ================= */}
+      <div className="bg-white p-5 rounded-xl shadow mb-6">
+        <h3 className="font-bold mb-2">Payment</h3>
+        <p>Method: {order?.paymentMethod}</p>
+        <p>Status: {order?.paymentStatus}</p>
       </div>
 
-      {["pending","confirmed"].includes(order.status) && (
+      {/* CANCEL */}
+      {["pending", "confirmed"].includes(order?.status) && (
         <button
           onClick={handleCancelOrder}
-          className="w-full bg-red-500 text-white py-2 rounded-xl mb-4"
+          className="w-full bg-red-500 text-white py-2 rounded mb-4"
         >
-          ❌ Cancel Order
+          Cancel Order
         </button>
       )}
 
-      {/* 📄 INVOICE */}
+      {/* INVOICE */}
       <button
-        onClick={() => downloadInvoice(order,user)}
-        className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition"
+        onClick={() => downloadInvoice(order, user)}
+        className="w-full bg-blue-600 text-white py-3 rounded"
       >
-        📄 Download Invoice
+        Download Invoice
       </button>
 
     </div>

@@ -1,4 +1,4 @@
-import { useEffect,useState } from "react";
+import { useEffect,useState,useCallback } from "react";
 import { useParams,useNavigate } from "react-router-dom";
 import { productDetails,getRelatedProducts } from "../services/product";
 import { wishlistToggle,checkWishlist } from "../services/wishlist";
@@ -22,6 +22,7 @@ export default function ProductDetails() {
 
   const { user } = useAuth();
   const { updateCartCount,fetchCartCount } = useCart();
+  const { fetchWishlistCount } = useWishlist();
 
   const [product,setProduct] = useState(null);
   const [relatedProducts,setRelatedProducts] = useState([]);
@@ -33,36 +34,52 @@ export default function ProductDetails() {
   const [comment,setComment] = useState("");
 
   const [loading,setLoading] = useState(false);
+  const [actionLoading,setActionLoading] = useState(false);
+
   const [addedToCart,setAddedToCart] = useState(false);
   const [showAuthModal,setShowAuthModal] = useState(false);
   const [wishlisted,setWishlisted] = useState(false);
-  const { fetchWishlistCount } = useWishlist();
+
 
   ////////////////////////////////////////////////////////////////
   // ✅ FETCH DATA
   ////////////////////////////////////////////////////////////////
 
+
+  const fetchAll = useCallback(async () => {
+
+    try {
+
+      setLoading(true);
+
+      const [pRes,rRes,relRes] = await Promise.all([
+        productDetails(id),
+        getProductReviews(id),
+        getRelatedProducts(id),
+      ]);
+
+      const productData = pRes || {};
+      const reviewsData = rRes?.reviews || rRes || [];
+      const relatedData = relRes?.products || [];
+
+      setProduct(productData);
+      setReviews(reviewsData);
+      setRelatedProducts(relatedData);
+
+      setSelectedImage(productData?.images?.[0]?.url || null);
+
+    } catch (error) {
+      console.error("Fetch error:",err);
+    } finally {
+      setLoading(false);
+    }
+  },[id])
+
   useEffect(() => {
-    fetchProduct();
-    fetchReviews();
-    fetchRelatedProducts();
-  },[id]);
+    fetchAll();
+  },[fetchAll]);
 
-  const fetchProduct = async () => {
-    const data = await productDetails(id);
-    setProduct(data);
-    setSelectedImage(data?.images?.[0]?.url);
-  };
 
-  const fetchReviews = async () => {
-    const res = await getProductReviews(id);
-    setReviews(res?.reviews || res || []);
-  };
-
-  const fetchRelatedProducts = async () => {
-    const res = await getRelatedProducts(id);
-    setRelatedProducts(res?.products || []);
-  };
 
   const handleCheckout = () => {
     if (!user) {
@@ -94,32 +111,29 @@ export default function ProductDetails() {
   ////////////////////////////////////////////////////////////////
 
   useEffect(() => {
-    if (!user || !product?._id) return;
+    if (!user || !id) return;
 
     const check = async () => {
       try {
-        const res = await checkWishlist(product._id);
-        setWishlisted(res.wishlisted);
+        const res = await checkWishlist(id);
+        setWishlisted(res?.wishlisted || false);
       } catch (err) {
         console.log(err);
       }
     };
 
     check();
-  },[user,product?._id]);
+  },[user,id]);
 
   ////////////////////////////////////////////////////////////////
   // 🛒 ADD TO CART
   ////////////////////////////////////////////////////////////////
 
   const handleAddToCart = async () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+   if (!user) return setShowAuthModal(true);
 
     try {
-      setLoading(true);
+      setActionLoading(true);
 
       await addToCart({
         productId: product._id,
@@ -143,7 +157,7 @@ export default function ProductDetails() {
     } catch {
       Swal.fire("Error","Failed to add to cart","error");
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -152,23 +166,13 @@ export default function ProductDetails() {
   ////////////////////////////////////////////////////////////////
 
   const handleWishlist = async () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    if (!user) return setShowAuthModal(true);
 
     try {
       const res = await wishlistToggle(product._id);
-      setWishlisted(res.wishlisted);
+      setWishlisted(res?.wishlisted);
 
       await fetchWishlistCount();
-
-      Swal.fire({
-        icon: "success",
-        title: res.message,
-        timer: 800,
-        showConfirmButton: false,
-      });
 
     } catch {
       Swal.fire("Error","Wishlist failed","error");
@@ -181,24 +185,15 @@ export default function ProductDetails() {
 
   const handleAddReview = async () => {
 
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    if (!user) return setShowAuthModal(true);
 
     try {
 
       await createReviews({ productId: id,rating,comment });
       setComment("");
       setRating(5);
-      fetchReviews();
 
-      Swal.fire({
-        icon: "success",
-        title: "Review added 🎉",
-        timer: 1000,
-        showConfirmButton: false,
-      });
+      fetchAll();
 
     } catch (error) {
       Swal.fire("Error","Failed to add review","error");
@@ -211,7 +206,9 @@ export default function ProductDetails() {
   // ✅ IMPORTANT: AFTER ALL HOOKS
   ////////////////////////////////////////////////////////////////
 
-  if (!product) return <ProductDetailsSkeleton />;
+   if (loading) return <ProductDetailsSkeleton />;
+
+  if (!product) return <p>Product not found</p>;
 
   const mrp = product.basePrice || 0;
   const finalPrice = product.finalPrice || 0;
@@ -229,22 +226,23 @@ export default function ProductDetails() {
         <div className="lg:col-span-2 flex flex-col lg:flex-row gap-4">
 
           {/* THUMBNAILS */}
-          <div className="flex order-2 lg:order-1 lg:flex-col gap-2 overflow-x-auto">
-            {product.images?.map((img,i) => (
+                   <div className="flex lg:flex-col gap-2">
+            {images.map((img, i) => (
               <img
                 key={i}
-                src={img.url}
-                onMouseEnter={() => setSelectedImage(img.url)}
-                className="w-16 h-16 border cursor-pointer"
+                src={img?.url}
+                onMouseEnter={() => setSelectedImage(img?.url)}
+                className="w-16 h-16 cursor-pointer border"
                 loading="lazy"
               />
             ))}
           </div>
 
           {/* MAIN IMAGE */}
-          <div className="order-1 lg:order-2 bg-gray-100 h-87.5 flex items-center justify-center">
-            <img src={selectedImage} className="max-h-full" loading="lazy" />
-          </div>
+          <img
+            src={selectedImage}
+            className="h-80 object-contain w-full" loading="lazy"
+          />
         </div>
 
         {/* CENTER INFO */}
@@ -253,16 +251,16 @@ export default function ProductDetails() {
           <h1 className="text-xl font-semibold">{product.name}</h1>
 
           <div className="text-yellow-500 mt-2">
-            ⭐ {product.averageRating || 4.2} ({reviews.length})
+            ⭐ {product.averageRating} ({reviews.length})
           </div>
 
           {/* PRICE */}
           <div className="mt-4">
-            <div className="line-through text-gray-400">₹{mrp}</div>
-            <div className="text-3xl font-bold text-red-600">₹{finalPrice}</div>
-            <div className="text-green-600">
-              {product.discountPercent}% OFF
-            </div>
+            <span className="line-through text-gray-400">₹{mrp}</span>
+            <span className="text-2xl font-bold text-red-600 ml-2">₹{finalPrice}</span>
+            <span className="text-green-600 ml-2">
+              {discount}% OFF
+            </span>
           </div>
 
           <p className="mt-4 text-gray-600">
@@ -285,10 +283,10 @@ export default function ProductDetails() {
 
             <button
               onClick={handleAddToCart}
-              disabled={loading || addedToCart}
+              disabled={actionLoading || addedToCart}
               className="w-full bg-yellow-400 mt-4 py-2 rounded"
             >
-              {loading
+              {actionLoading
                 ? "Adding..."
                 : addedToCart
                   ? "Added ✅"
@@ -310,7 +308,7 @@ export default function ProductDetails() {
 
       {/* ⭐ RATING INPUT (NEW) */}
       <div className="mt-6">
-        <h3 className="font-semibold mb-2">Rate this product</h3>
+        <h3 className="font-semibold mb-2">Reviews</h3>
 
         <div className="flex gap-1 text-2xl cursor-pointer">
           {[1,2,3,4,5].map((star) => (
