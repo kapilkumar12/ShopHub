@@ -1,6 +1,4 @@
-import React from 'react'
-
-const CheckoutSkeleton = () => {
+export default function CheckoutSkeleton() {
   return (
 
     <div className="bg-gray-100 min-h-screen p-4 md:p-8 animate-pulse">
@@ -86,6 +84,3 @@ const CheckoutSkeleton = () => {
     </div>
   );
 }
-
-
-export default CheckoutSkeleton

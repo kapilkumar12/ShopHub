@@ -1,4 +1,3 @@
-// OrdersSkeleton.jsx
 export default function OrdersSkeleton() {
   return (
     <div className="p-6 max-w-6xl mx-auto animate-pulse">
