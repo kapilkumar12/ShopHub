@@ -10,7 +10,7 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
-import {CartSkeleton} from "../skeletons/CartSkeleton";
+import CartSkeleton from "../skeletons/CartSkeleton";
 
 export default function Cart() {
   const [cart, setCart] = useState([]);

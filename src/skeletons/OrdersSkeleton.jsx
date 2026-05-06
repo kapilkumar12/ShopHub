@@ -1,5 +1,7 @@
-export function OrdersSkeleton() {
-  return (
+import React from 'react'
+
+const OrdersSkeleton = () => {
+   return (
     <div className="p-6 max-w-6xl mx-auto animate-pulse">
 
       {/* Title */}
@@ -51,3 +53,5 @@ export function OrdersSkeleton() {
     </div>
   );
 }
+
+export default OrdersSkeleton

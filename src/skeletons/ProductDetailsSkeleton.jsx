@@ -1,4 +1,6 @@
-export function ProductDetailsSkeleton() {
+import React from 'react'
+
+const ProductDetailsSkeleton = () => {
   return (
    
     <div className="p-4 md:p-6 animate-pulse">
@@ -79,3 +81,5 @@ export function ProductDetailsSkeleton() {
 
   )
 }
+
+export default ProductDetailsSkeleton

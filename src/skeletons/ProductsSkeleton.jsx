@@ -1,6 +1,7 @@
-export function ProductsSkeleton() {
-  return (
-    <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6 animate-pulse">
+import React from 'react'
+
+const ProductsSkeleton = () => {
+      <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6 animate-pulse">
 
       {/* ================= FILTER SIDEBAR ================= */}
       <div className="bg-white p-4 rounded-xl shadow space-y-4">
@@ -53,5 +54,6 @@ export function ProductsSkeleton() {
       </div>
 
     </div>
-  );
 }
+
+export default ProductsSkeleton

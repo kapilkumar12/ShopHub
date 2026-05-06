@@ -4,7 +4,7 @@ import { getCart } from "../services/cart";
 import { useNavigate,useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import Swal from "sweetalert2";
-import {CheckoutSkeleton} from "../skeletons/CheckoutSkeleton";
+import CheckoutSkeleton from "../skeletons/CheckoutSkeleton";
 
 export default function Checkout() {
 

@@ -13,7 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { useWishlist } from "../context/WishlistContext";
 import AuthModal from "../components/AuthModal";
 import Swal from "sweetalert2";
-import {ProductDetailsSkeleton} from "../skeletons/ProductDetailsSkeleton";
+import ProductDetailsSkeleton from "../skeletons/ProductDetailsSkeleton";
 
 export default function ProductDetails() {
 

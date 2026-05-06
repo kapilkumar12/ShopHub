@@ -1,5 +1,7 @@
-export function AccountSkeleton() {
-  return (
+import React from 'react'
+
+const AccountSkeleton = () => {
+   return (
     <div className="p-6 max-w-5xl mx-auto animate-pulse">
 
       {/* ================= PROFILE CARD ================= */}
@@ -36,3 +38,5 @@ export function AccountSkeleton() {
     </div>
   );
 }
+
+export default AccountSkeleton

@@ -1,7 +1,8 @@
-export function CheckoutSkeleton() {
-  return (
+import React from 'react'
 
-    <div className="bg-gray-100 min-h-screen p-4 md:p-8 animate-pulse">
+const CheckoutSkeleton = () => {
+  return (
+   <div className="bg-gray-100 min-h-screen p-4 md:p-8 animate-pulse">
 
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
 
@@ -82,5 +83,7 @@ export function CheckoutSkeleton() {
 
       </div>
     </div>
-  );
+  )
 }
+
+export default CheckoutSkeleton

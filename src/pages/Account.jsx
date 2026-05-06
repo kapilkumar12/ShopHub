@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
-import {AccountSkeleton} from "../skeletons/AccountSkeleton";
+import AccountSkeleton from "../skeletons/AccountSkeleton";
 
 export default function Account() {
   const [user,setUser] = useState(null);

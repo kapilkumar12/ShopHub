@@ -1,9 +1,11 @@
-export function ProductCardSkeleton({ count = 6 }) {
+import React from "react";
+
+const ProductCardSkeleton = () => {
   return (
     <>
-      {Array.from({ length: count }).map((_, i) => (
+      {[...Array(5)].map((_, index) => (
         <div
-          key={i}
+          key={index}
           className="bg-white p-3 rounded-xl shadow animate-pulse"
         >
           <div className="h-48 bg-gray-300 rounded mb-3"></div>
@@ -14,4 +16,6 @@ export function ProductCardSkeleton({ count = 6 }) {
       ))}
     </>
   );
-}
+};
+
+export default ProductCardSkeleton;

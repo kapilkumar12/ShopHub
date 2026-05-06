@@ -1,5 +1,7 @@
-export function CartSkeleton() {
-  return (
+import React from 'react'
+
+const CartSkeleton = () => {
+    return (
 
     <div className="p-4 md:p-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 animate-pulse">
 
@@ -77,3 +79,5 @@ export function CartSkeleton() {
 
   )
 }
+
+export default CartSkeleton
