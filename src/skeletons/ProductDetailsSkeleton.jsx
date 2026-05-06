@@ -1,4 +1,4 @@
-export default function ProductDetailsSkeleton() {
+export function ProductDetailsSkeleton() {
   return (
    
     <div className="p-4 md:p-6 animate-pulse">

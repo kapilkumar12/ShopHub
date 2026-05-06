@@ -1,4 +1,4 @@
-export default function ProductCardSkeleton({ count = 6 }) {
+export function ProductCardSkeleton({ count = 6 }) {
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (

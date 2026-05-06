@@ -1,4 +1,4 @@
-export default function ProductsSkeleton() {
+export function ProductsSkeleton() {
   return (
     <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6 animate-pulse">
 

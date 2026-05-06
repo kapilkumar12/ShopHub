@@ -1,4 +1,4 @@
-export default function OrderDetailsSkeleton() {
+export function OrderDetailsSkeleton() {
   return (
     <div className="p-6 max-w-5xl mx-auto animate-pulse">
 

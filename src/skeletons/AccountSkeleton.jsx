@@ -1,4 +1,4 @@
-export default function AccountSkeleton() {
+export function AccountSkeleton() {
   return (
     <div className="p-6 max-w-5xl mx-auto animate-pulse">
 
