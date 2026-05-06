@@ -21,12 +21,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       const res = await API.get("/auth/me");
-      const userData = res.data.user || res.data;
-
-      setUser(userData);
+      setUser(res.data.user || res.data);
 
     } catch (error) {
-      setUser(null);
+      console.log("fetchUser failed", error.message);
     } finally {
       setLoading(false);
     }
