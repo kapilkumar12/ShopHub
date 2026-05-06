@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState,useEffect, memo } from "react";
+import { useState,useEffect } from "react";
 import { addToCart } from "../services/cart";
 import { wishlistToggle,checkWishlist } from "../services/wishlist";
 import Swal from "sweetalert2";

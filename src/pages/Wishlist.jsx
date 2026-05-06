@@ -7,7 +7,6 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import Swal from "sweetalert2";
-import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
 
 export default function Wishlist() {
 
@@ -24,34 +23,46 @@ export default function Wishlist() {
   // FETCH WISHLIST
   ////////////////////////////////////////////////////////////////
   useEffect(() => {
-    if (!user?._id) return;
+    if (!user) return;
 
-    const fetch = async () => {
-      try {
-        const res = await getWishlist();
-        setProducts(res?.products || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchWishlist();
+  },[user]);
 
-    fetch();
-  }, [user]);
+  const fetchWishlist = async () => {
+    try {
+      const res = await getWishlist();
+      setProducts(res?.products || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   ////////////////////////////////////////////////////////////////
   // REMOVE FROM WISHLIST
   ////////////////////////////////////////////////////////////////
-  const handleRemove = async (id) => {
+  const handleRemove = async (productId) => {
     try {
-      await wishlistToggle(id);
+      await wishlistToggle(productId);
 
-      setProducts((p) => p.filter((x) => x?._id !== id));
+      // 🔥 UI update
+      setProducts((prev) =>
+        prev.filter((p) => p._id !== productId)
+      );
+
+      // 🔥 Navbar count sync
       await fetchWishlistCount();
 
+      Swal.fire({
+        icon: "success",
+        title: "Removed from Wishlist",
+        timer: 800,
+        showConfirmButton: false,
+      });
+
     } catch {
-      Swal.fire("Error", "Failed", "error");
+      Swal.fire("Error","Failed to remove","error");
     }
   };
 
@@ -59,22 +70,37 @@ export default function Wishlist() {
   // ADD TO CART + REMOVE FROM WISHLIST
   ////////////////////////////////////////////////////////////////
   const handleAddToCart = async (product) => {
-    if (!user) return Swal.fire("Login required");
+    if (!user) {
+      Swal.fire("Login Required");
+      return;
+    }
 
     try {
       // 🛒 Add to cart
-       await addToCart({ productId: product?._id, quantity: 1 });
+      await addToCart({
+        productId: product._id,
+        quantity: 1,
+      });
 
       updateCartCount(1);
       await fetchCartCount();
 
       // ❤️ Remove from wishlist (AUTO)
-      await wishlistToggle(product?._id);
+      await wishlistToggle(product._id);
 
-      setProducts((p) => p.filter((x) => x?._id !== product?._id));
+      setProducts((prev) =>
+        prev.filter((p) => p._id !== product._id)
+      );
 
       // 🔥 update wishlist count
       await fetchWishlistCount();
+
+      Swal.fire({
+        icon: "success",
+        title: "Added to Cart 🛒",
+        timer: 800,
+        showConfirmButton: false,
+      });
 
       navigate("/cart");
 
@@ -90,15 +116,11 @@ export default function Wishlist() {
     return <p className="text-center mt-10">Login Required</p>;
   }
 
-if (loading) {
-    return (
-      <div className="p-4 md:p-6 grid grid-cols-2 md:grid-cols-4 gap-5">
-        <ProductCardSkeleton count={8} />
-      </div>
-    );
+  if (loading) {
+    return <p className="text-center mt-10">Loading...</p>;
   }
 
-  if (products?.length === 0) {
+  if (products.length === 0) {
     return (
       <div className="text-center mt-20">
         <h2 className="text-xl font-semibold">
@@ -106,10 +128,10 @@ if (loading) {
         </h2>
 
         <button
-          onClick={() => navigate("/products")}
+          onClick={() => navigate("/")}
           className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
         >
-         Explore Products
+          Browse Products
         </button>
       </div>
     );
@@ -128,13 +150,7 @@ if (loading) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
 
         {products.map((p) => (
-         <ProductCard
-            key={p._id}
-            product={p}
-            showWishlistActions={true}
-            onRemove={() => handleRemove(p._id)}
-            onAddToCart={() => handleAddToCart(p)}
-          />
+          <ProductCard key={p._id} product={p} />
         ))}
 
       </div>
