@@ -8,7 +8,9 @@ import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
 export default function Home() {
 
   const [products,setProducts] = useState([]);
-  const [loading,setLoading] = useState(true);
+  const [trendingProducts,setTrendingProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingTrending, setLoadingTrending] = useState(true);
 
   useEffect(() => {
     fetchProducts()
@@ -17,26 +19,26 @@ export default function Home() {
 
   const fetchProducts = async () => {
     try {
-      setLoading(true);
+      setLoadingProducts(true);
       const res = await getProducts();
       setProducts(res.products || []);
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      setLoadingProducts(false);
     }
   };
 
 
     const fetchTrendingProducts = async () => {
     try {
-      setLoading(true);
+      setLoadingTrending(true);
       const res = await getTrendingProducts();
       setTrendingProducts(res.products || []);
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      setLoadingTrending(false);
     }
   };
 
@@ -50,7 +52,7 @@ export default function Home() {
           <h2 className="text-2xl font-bold mb-4">🔥 Trending Products</h2>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {loading ? (
+            {loadingProducts ? (
               <ProductCardSkeleton />
             ) : trendingProducts.length > 0 ? (
               trendingProducts.map((item) => (
@@ -66,7 +68,7 @@ export default function Home() {
           <h2 className="text-2xl font-bold mb-4">🔥 All Products</h2>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {loading ? (
+            {loadingTrending ? (
               <ProductCardSkeleton />
             ) : products.length > 0 ? (
               products.map((item) => (
