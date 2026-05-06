@@ -8,7 +8,6 @@ import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
 export default function Home() {
 
   const [products,setProducts] = useState([]);
-  const [trendingProducts,setTrendingProducts] = useState([]);
   const [loading,setLoading] = useState(true);
 
   useEffect(() => {

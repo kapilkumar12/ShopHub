@@ -1,6 +1,7 @@
 import React from 'react'
 
 const ProductsSkeleton = () => {
+  return ( 
       <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6 animate-pulse">
 
       {/* ================= FILTER SIDEBAR ================= */}
@@ -54,6 +55,7 @@ const ProductsSkeleton = () => {
       </div>
 
     </div>
+    )
 }
 
 export default ProductsSkeleton

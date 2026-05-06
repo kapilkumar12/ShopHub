@@ -1,9 +1,9 @@
-import React from "react";
+import React from 'react'
 
-const ProductCardSkeleton = () => {
+const ProductCardSkeleton = ({ count = 5 }) => {
   return (
     <>
-      {[...Array(5)].map((_, index) => (
+      {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}
           className="bg-white p-3 rounded-xl shadow animate-pulse"
@@ -15,7 +15,7 @@ const ProductCardSkeleton = () => {
         </div>
       ))}
     </>
-  );
-};
+  )
+}
 
-export default ProductCardSkeleton;
+export default ProductCardSkeleton
