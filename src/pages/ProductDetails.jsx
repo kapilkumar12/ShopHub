@@ -109,7 +109,7 @@ export default function ProductDetails() {
         quantity: 1,
       });
 
-      updateCartCount(1);
+      // updateCartCount(1);
       await fetchCartCount();
 
       setAddedToCart(true);

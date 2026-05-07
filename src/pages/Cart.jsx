@@ -24,7 +24,7 @@ export default function Cart() {
   const [loadingId,setLoadingId] = useState(null);
 
   const { user } = useAuth();
-  const { updateCartCount,fetchCartCount } = useCart();
+  const { updateCartCount, fetchCartCount } = useCart();
 
   const navigate = useNavigate();
 

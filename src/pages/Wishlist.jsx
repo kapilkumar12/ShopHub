@@ -84,7 +84,7 @@ useEffect(() => {
         quantity: 1,
       });
 
-      updateCartCount(1);
+      // updateCartCount(1);
       await fetchCartCount();
 
       // ❤️ Remove from wishlist (AUTO)
