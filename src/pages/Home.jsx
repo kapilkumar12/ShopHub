@@ -2,7 +2,7 @@ import Hero from "../components/Hero";
 import ProductCard from "../components/ProductCard";
 import API from "../services/api";
 import { useEffect,useState } from "react";
-import { getProducts, getTrendingProducts } from "../services/product"
+import { getProducts,getTrendingProducts } from "../services/product"
 import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
 
 export default function Home() {
@@ -29,7 +29,7 @@ export default function Home() {
   };
 
 
-    const fetchTrendingProducts = async () => {
+  const fetchTrendingProducts = async () => {
     try {
       setLoading(true);
       const res = await getTrendingProducts();
@@ -48,7 +48,15 @@ export default function Home() {
         <Hero />
 
         <div>
-          <h2 className="text-2xl font-bold mb-4">🔥 Trending Products</h2>
+          {loading ? (
+            <div className="animate-pulse mb-4">
+              <div className="h-8 w-52 bg-gray-300 rounded"></div>
+            </div>
+          ) : (
+            <h2 className="text-2xl font-bold mb-4">
+              🔥 Trending Products
+            </h2>
+          )}
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {loading ? (
@@ -64,7 +72,15 @@ export default function Home() {
         </div>
 
         <div>
-          <h2 className="text-2xl font-bold mb-4">🔥 All Products</h2>
+          {loading ? (
+            <div className="animate-pulse mb-4">
+              <div className="h-8 w-52 bg-gray-300 rounded"></div>
+            </div>
+          ) : (
+            <h2 className="text-2xl font-bold mb-4">
+              🔥 All Products
+            </h2>
+          )}
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {loading ? (
