@@ -1,4 +1,4 @@
-import Hero from "../components/HeroSlider";
+import HeroSlider from "../components/HeroSlider";
 import ProductCard from "../components/ProductCard";
 import API from "../services/api";
 import { useEffect,useState } from "react";
