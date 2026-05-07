@@ -1,8 +1,9 @@
-import Hero from "../components/Hero";
+import Hero from "../components/HeroSlider";
 import ProductCard from "../components/ProductCard";
 import API from "../services/api";
 import { useEffect,useState } from "react";
 import { getProducts,getTrendingProducts } from "../services/product"
+import { getSliders } from "../services/slider";
 import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
 import HeroSkeleton from "../skeletons/HeroSkeleton";
 
@@ -10,46 +11,45 @@ export default function Home() {
 
   const [products,setProducts] = useState([]);
   const [trendingProducts,setTrendingProducts] = useState([]);
+
+  const [slides,setSlides] = useState([]);
   const [loading,setLoading] = useState(true);
   const [heroLoading,setHeroLoading] = useState(true);
 
   useEffect(() => {
-    fetchProducts()
-    fetchTrendingProducts()
+    fetchAllData();
   },[]);
 
-  const fetchProducts = async () => {
+  const fetchAllData = async () => {
     try {
+
       setLoading(true);
-      const res = await getProducts();
-      setProducts(res.products || []);
+      setHeroLoading(true);
+
+      const [
+        productsRes,
+        trendingRes,
+        slidersRes
+      ] = await Promise.all([
+        getProducts(),
+        getTrendingProducts({
+          limit: 5,
+        }),
+        getSliders(),
+      ]);
+
+      setProducts(productsRes?.products || []);
+      setTrendingProducts(trendingRes?.products || []);
+      setSlides(slidersRes?.sliders || []);
+
     } catch (error) {
       console.error(error);
+
     } finally {
       setLoading(false);
-    }
-  };
-
-
-  const fetchTrendingProducts = async () => {
-    try {
-      setLoading(true);
-      const res = await getTrendingProducts();
-      setTrendingProducts(res.products || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
       setHeroLoading(false);
-    },1200);
-
-    return () => clearTimeout(timer);
-  },[]);
+    }
+  };
 
   return (
     <>
@@ -58,7 +58,7 @@ export default function Home() {
         {heroLoading ? (
           <HeroSkeleton />
         ) : (
-          <Hero />
+          <HeroSlider slides={slides} />
         )}
 
         <div>
@@ -112,18 +112,4 @@ export default function Home() {
       </div>
     </>
   );
-}
-
-
-function SkeletonCards() {
-  return Array(6)
-    .fill(0)
-    .map((_,i) => (
-      <div key={i} className="bg-white p-3 rounded-xl shadow animate-pulse">
-        <div className="h-48 bg-gray-300 rounded mb-3"></div>
-        <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-        <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
-        <div className="h-6 bg-gray-300 rounded w-1/3"></div>
-      </div>
-    ));
 }

@@ -1,29 +1,13 @@
 import { useEffect, useState } from "react";
-import { getSliders } from "../services/slider";
-import HeroSkeleton from "../skeletons/HeroSkeleton";
 
-export default function HeroSlider() {
-  const [slides, setSlides] = useState([]);
+export default function HeroSlider({ slides = [] }) {
+
   const [current, setCurrent] = useState(0);
-  const [loading, setLoading] = useState(true);
 
-  const fetchSlides = async () => {
-    try {
-      setLoading(true);
-      const res = await getSliders();
-      setSlides(res?.sliders || []);
-    } catch (error) {
-      setSlides([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //////////////////////////////////////////////////////////////
+  // AUTO SLIDE
+  //////////////////////////////////////////////////////////////
 
-  useEffect(() => {
-    fetchSlides();
-  }, []);
-
-  // Auto Slide
   useEffect(() => {
     if (slides.length === 0) return;
 
@@ -35,21 +19,17 @@ export default function HeroSlider() {
   }, [slides]);
 
   //////////////////////////////////////////////////////////////
-  // 🔥 EMPTY STATE
+  // EMPTY STATE
   //////////////////////////////////////////////////////////////
-  if (!Array.isArray(slides) || slides.length === 0) {
-    return (
-      <div className="h-75 flex items-center justify-center">
-        No sliders found
-      </div>
-    );
-  }
+
+  if (!slides.length) return null;
 
   //////////////////////////////////////////////////////////////
-  // 🔥 MAIN UI
+  // UI
   //////////////////////////////////////////////////////////////
+
   return (
-    <div className="relative w-full h-75 md:h-100 overflow-hidden rounded-xl">
+    <div className="relative w-full h-64 md:h-[420px] overflow-hidden rounded-xl">
 
       {/* Slides */}
       {slides.map((slide, index) => (
@@ -61,19 +41,26 @@ export default function HeroSlider() {
         >
           <img
             src={slide?.image?.[0]?.url}
+            alt={slide.title}
             className="w-full h-full object-cover"
             loading="lazy"
           />
 
           {/* Overlay */}
-          <div className="absolute inset-0 bg-black/40 flex flex-col justify-center p-8 text-white">
-            <h2 className="text-3xl md:text-4xl font-bold">
+          <div className="absolute inset-0 bg-black/40 flex flex-col justify-center p-4 md:p-8 text-white">
+
+            <h2 className="text-2xl md:text-4xl font-bold max-w-xl">
               {slide.title}
             </h2>
-            <p className="mt-2 text-lg">{slide.description}</p>
-            <button className="mt-4 w-fit bg-orange-500 px-5 py-2 rounded-lg hover:bg-orange-600 cursor-pointer">
+
+            <p className="mt-2 text-sm md:text-lg max-w-lg">
+              {slide.description}
+            </p>
+
+            <button className="mt-4 w-fit bg-orange-500 px-5 py-2 rounded-lg hover:bg-orange-600">
               Shop Now
             </button>
+
           </div>
         </div>
       ))}
@@ -85,11 +72,14 @@ export default function HeroSlider() {
             key={index}
             onClick={() => setCurrent(index)}
             className={`w-3 h-3 rounded-full ${
-              current === index ? "bg-white" : "bg-gray-400"
+              current === index
+                ? "bg-white"
+                : "bg-gray-400"
             }`}
           />
         ))}
       </div>
+
     </div>
   );
 }
