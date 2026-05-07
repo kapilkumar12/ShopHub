@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function HeroSlider({ slides = [] }) {
 
   const [current, setCurrent] = useState(0);
+  const navigate = useNavigate();
 
   //////////////////////////////////////////////////////////////
   // AUTO SLIDE
@@ -57,7 +59,7 @@ export default function HeroSlider({ slides = [] }) {
               {slide.description}
             </p>
 
-            <button className="mt-4 w-fit bg-orange-500 px-5 py-2 rounded-lg hover:bg-orange-600">
+            <button className="mt-4 w-fit bg-orange-500 px-5 py-2 rounded-lg hover:bg-orange-600" onClick={()=>navigate("/products")}>
               Shop Now
             </button>
 

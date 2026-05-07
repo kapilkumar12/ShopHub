@@ -11,6 +11,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import NavbarSkeleton from "../skeletons/NavbarSkeleton";
+import { Menu,X } from "lucide-react";
 
 export default function Navbar() {
   const [menuOpen,setMenuOpen] = useState(false);
@@ -152,10 +153,25 @@ export default function Navbar() {
 
             {/* MOBILE MENU BTN */}
             <button
-              className="md:hidden text-2xl"
+              className="
+    md:hidden
+    p-2
+    rounded-lg
+    hover:bg-gray-100
+    transition-all
+    duration-300
+  "
               onClick={() => setMenuOpen(!menuOpen)}
             >
-              ☰
+
+              <div className="transition-transform duration-300">
+                {menuOpen ? (
+                  <X size={26} />
+                ) : (
+                  <Menu size={26} />
+                )}
+              </div>
+
             </button>
 
             {/* LOGO */}
