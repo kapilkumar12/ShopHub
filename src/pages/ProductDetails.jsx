@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { useWishlist } from "../context/WishlistContext";
 import AuthModal from "../components/AuthModal";
 import Swal from "sweetalert2";
+import ProductDetailsSkeleton from "../skeletons/ProductDetailsSkeleton";
 
 export default function ProductDetails() {
 
@@ -176,7 +177,7 @@ export default function ProductDetails() {
   // ✅ IMPORTANT: AFTER ALL HOOKS
   ////////////////////////////////////////////////////////////////
 
-  if (!product) return <div>Loading...</div>;
+  if (!product) return <ProductDetailsSkeleton />;
 
   const mrp = product.basePrice || 0;
   const finalPrice = product.finalPrice || 0;

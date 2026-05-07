@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import Swal from "sweetalert2";
+import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
 
 export default function Wishlist() {
 
@@ -118,9 +119,9 @@ useEffect(() => {
     return <p className="text-center mt-10">Login Required</p>;
   }
 
-  if (loading) {
-    return <p className="text-center mt-10">Loading...</p>;
-  }
+  if (loading) 
+    return <ProductCardSkeleton count={5} />;
+  
 
   if (products.length === 0) {
     return (

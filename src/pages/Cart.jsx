@@ -24,7 +24,7 @@ export default function Cart() {
   const [loadingId,setLoadingId] = useState(null);
 
   const { user } = useAuth();
-  const { updateCartCount, fetchCartCount } = useCart();
+  const { updateCartCount,fetchCartCount } = useCart();
 
   const navigate = useNavigate();
 
@@ -40,24 +40,13 @@ export default function Cart() {
       const res = await getCart();
       const items = res?.items || [];
 
-      const subtotal = items.reduce(
-        (a,i) => a + i.pricing.sellingPrice * i.quantity,
-        0
-      );
-
-      const gst = items.reduce(
-        (a,i) => a + i.pricing.gstAmount * i.quantity,
-        0
-      );
-
       setCart(items);
-      setSummary({
-        subtotal,
-        gst,
-        total: subtotal + gst,
-      });
+
+      updateSummary(items);
 
       updateCartCount(items);
+
+      if (items.length > 0) { fetchRelated(items[0]?.product?._id); }
 
     } finally {
       setLoading(false);

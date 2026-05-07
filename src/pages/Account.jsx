@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import AccountSkeleton from "../skeletons/AccountSkeleton";
 
 export default function Account() {
   const [user,setUser] = useState(null);
@@ -45,7 +46,7 @@ export default function Account() {
     }
   };
 
-  if (!user) return <p className="text-center mt-10">Loading...</p>;
+  if (!user) return <AccountSkeleton />;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">

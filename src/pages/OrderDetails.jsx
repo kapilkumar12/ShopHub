@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 import { downloadInvoice } from "../utils/generateInvoice";
-
+import OrderDetailsSkeleton from "../skeletons/OrderDetailsSkeleton";
 
 export default function OrderDetails() {
   const { id } = useParams();
@@ -138,7 +138,7 @@ export default function OrderDetails() {
 
   // ⏳ Loading
   if (loading)
-    return <p className="text-center mt-10">Loading...</p>;
+    return <OrderDetailsSkeleton />;
 
   // ❌ Not found
   if (!order)
