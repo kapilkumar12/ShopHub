@@ -1,10 +1,15 @@
-import { createContext, useContext, useState } from "react";
+import { createContext,useContext,useState } from "react";
 import API from "../services/api";
 
-const WishlistContext = createContext();
+const WishlistContext = createContext({
+  wishlistCount: 0,
+  fetchWishlistCount: async () => { },
+  updateWishlistCount: () => { },
+  resetWishlistCount: () => { },
+});
 
 export const WishlistProvider = ({ children }) => {
-  const [wishlistCount, setWishlistCount] = useState(0);
+  const [wishlistCount,setWishlistCount] = useState(0);
 
   ////////////////////////////////////////////////////////////////
   // ✅ FETCH COUNT (CORRECT)
@@ -26,10 +31,24 @@ export const WishlistProvider = ({ children }) => {
   ////////////////////////////////////////////////////////////////
   // ✅ OPTIONAL: LIVE UPDATE
   ////////////////////////////////////////////////////////////////
-  const updateWishlistCount = (products) => {
-    if (!Array.isArray(products)) return;
+  const updateWishlistCount = (
+    products = []
+  ) => {
+
+    if (!Array.isArray(products)) {
+
+      console.warn(
+        "updateWishlistCount expects array"
+      );
+
+      return;
+    }
 
     setWishlistCount(products.length);
+  };
+
+  const resetWishlistCount = () => {
+    setWishlistCount(0);
   };
 
   return (
@@ -38,6 +57,7 @@ export const WishlistProvider = ({ children }) => {
         wishlistCount,
         fetchWishlistCount,
         updateWishlistCount,
+        resetWishlistCount
       }}
     >
       {children}

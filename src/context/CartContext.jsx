@@ -1,7 +1,12 @@
 import { createContext,useContext,useState } from "react";
 import API from "../services/api";
 
-const CartContext = createContext();
+const CartContext = createContext({
+  cartCount: 0,
+  fetchCartCount: async () => { },
+  updateCartCount: () => { },
+  resetCartCount: () => { },
+});
 
 export const CartProvider = ({ children }) => {
   const [cartCount,setCartCount] = useState(0);
@@ -11,7 +16,7 @@ export const CartProvider = ({ children }) => {
   ////////////////////////////////////////////////////////////////
   const calculateCount = (items) => {
     return items.reduce(
-      (acc,item) => acc + item.quantity,
+      (acc,item) => acc + (item.quantity || 0),
       0
     );
   };
@@ -35,12 +40,21 @@ export const CartProvider = ({ children }) => {
   ////////////////////////////////////////////////////////////////
   // 🔥 LIVE UPDATE (ARRAY BASED)
   ////////////////////////////////////////////////////////////////
-  const updateCartCount = (data) => {
-    if (Array.isArray(data)) {
-      setCartCount(calculateCount(data));
-    } else if (typeof data === "number") {
-      setCartCount((prev) => prev + data);
+  const updateCartCount = (items = []) => {
+
+    if (!Array.isArray(items)) {
+      console.warn(
+        "updateCartCount expects array"
+      );
+
+      return;
     }
+
+    setCartCount(calculateCount(items));
+  };
+
+  const resetCartCount = () => {
+    setCartCount(0);
   };
 
   return (
@@ -49,6 +63,7 @@ export const CartProvider = ({ children }) => {
         cartCount,
         fetchCartCount,
         updateCartCount,
+        resetCartCount
       }}
     >
       {children}

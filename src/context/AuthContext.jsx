@@ -1,9 +1,14 @@
-
 import { createContext,useContext,useEffect,useState } from "react";
 import API from "../services/api";
 import Swal from "sweetalert2";
 
-const AuthContext = createContext();
+const AuthContext = createContext({
+  user: null,
+  setUser: () => { },
+  fetchUser: async () => { },
+  logout: async () => { },
+  loading: true,
+});
 
 export const AuthProvider = ({ children }) => {
   const [user,setUser] = useState(null);
@@ -17,6 +22,7 @@ export const AuthProvider = ({ children }) => {
 
       if (!token) {
         setUser(null);
+        setLoading(false);
         return;
       }
 
@@ -24,7 +30,9 @@ export const AuthProvider = ({ children }) => {
       setUser(res.data.user || res.data);
 
     } catch (error) {
-      console.log("fetchUser failed", error.message);
+      console.log("fetchUser failed",error.message);
+      setUser(null);
+      localStorage.removeItem("accessToken");
     } finally {
       setLoading(false);
     }
@@ -34,18 +42,18 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   },[]);
 
-    useEffect(() => {
+  useEffect(() => {
     const handleUnauthorized = () => {
       setUser(null);
       localStorage.removeItem("accessToken");
     };
 
-    window.addEventListener("unauthorized", handleUnauthorized);
+    window.addEventListener("unauthorized",handleUnauthorized);
 
     return () => {
-      window.removeEventListener("unauthorized", handleUnauthorized);
+      window.removeEventListener("unauthorized",handleUnauthorized);
     };
-  }, []);
+  },[]);
 
   // 🔥 logout
   const logout = async () => {
