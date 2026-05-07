@@ -172,6 +172,31 @@ export default function ProductDetails() {
 
   };
 
+  const handleCheckout = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    navigate("/checkout",{
+      state: {
+        directBuy: true,
+        product: {
+          _id: product._id,
+          name: product.name,
+          images: product.images,
+          quantity: 1,
+          basePrice: product.basePrice,
+          sellingPrice: product.sellingPrice,
+          discountAmount: product.discountAmount,
+          finalPrice: product.finalPrice,
+          gstAmount: product.gstAmount,
+          shippingCost: product.shippingCost
+        }
+      }
+    });
+  };
+
 
   ////////////////////////////////////////////////////////////////
   // ✅ IMPORTANT: AFTER ALL HOOKS
