@@ -42,86 +42,70 @@ export default function ProductDetails() {
   ////////////////////////////////////////////////////////////////
 
   useEffect(() => {
-    fetchProduct();
-    fetchReviews();
-    fetchRelatedProducts();
+    const fetchAll = async () => {
+      try {
+        setLoading(true);
+
+        const [productRes,reviewsRes,relatedRes] = await Promise.all([
+          productDetails(id),
+          getProductReviews(id),
+          getRelatedProducts(id),
+        ]);
+
+        setProduct(productRes);
+        setSelectedImage(productRes?.images?.[0]?.url);
+
+        setReviews(reviewsRes?.reviews || reviewsRes || []);
+        setRelatedProducts(relatedRes?.products || []);
+
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
   },[id]);
 
-  const fetchProduct = async () => {
-    const data = await productDetails(id);
-    setProduct(data);
-    setSelectedImage(data?.images?.[0]?.url);
-  };
 
-  const fetchReviews = async () => {
-    const res = await getProductReviews(id);
-    setReviews(res?.reviews || res || []);
-  };
-
-  const fetchRelatedProducts = async () => {
-    const res = await getRelatedProducts(id);
-    setRelatedProducts(res?.products || []);
-  };
-
-  const handleCheckout = () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-
-    navigate("/checkout",{
-      state: {
-        directBuy: true,
-        product: {
-          _id: product._id,
-          name: product.name,
-          images: product.images,
-          quantity: 1,
-          basePrice: product.basePrice,
-          sellingPrice: product.sellingPrice,
-          discountAmount: product.discountAmount,
-          finalPrice: product.finalPrice,
-          gstAmount: product.gstAmount,
-          shippingCost: product.shippingCost
-        }
-      }
-    });
-  };
 
   ////////////////////////////////////////////////////////////////
   // ✅ CHECK WISHLIST (SAFE)
   ////////////////////////////////////////////////////////////////
 
   useEffect(() => {
-    if (!user || !product?._id) return;
+    if (!user || !id) return;
 
     const check = async () => {
       try {
-        const res = await checkWishlist(product._id);
-        setWishlisted(res.wishlisted);
+        const res = await checkWishlist(id);
+        if (!ignore) setWishlisted(res.wishlisted);
       } catch (err) {
         console.log(err);
       }
     };
 
     check();
-  },[user,product?._id]);
+
+    return () => {
+      ignore = true;
+    };
+
+  },[user,id]);
 
   ////////////////////////////////////////////////////////////////
   // 🛒 ADD TO CART
   ////////////////////////////////////////////////////////////////
 
   const handleAddToCart = async () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    if (!user) return setShowAuthModal(true);
 
     try {
       setLoading(true);
 
       await addToCart({
-        productId: product._id,
+        productId: id,
         quantity: 1,
       });
 
@@ -137,7 +121,7 @@ export default function ProductDetails() {
         showConfirmButton: false,
       });
 
-      setTimeout(() => navigate("/cart"),1000);
+      navigate("/cart");
 
     } catch {
       Swal.fire("Error","Failed to add to cart","error");
@@ -151,23 +135,13 @@ export default function ProductDetails() {
   ////////////////////////////////////////////////////////////////
 
   const handleWishlist = async () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    if (!user) return setShowAuthModal(true);
 
     try {
-      const res = await wishlistToggle(product._id);
+      const res = await wishlistToggle(id);
       setWishlisted(res.wishlisted);
 
       await fetchWishlistCount();
-
-      Swal.fire({
-        icon: "success",
-        title: res.message,
-        timer: 800,
-        showConfirmButton: false,
-      });
 
     } catch {
       Swal.fire("Error","Wishlist failed","error");
@@ -180,24 +154,16 @@ export default function ProductDetails() {
 
   const handleAddReview = async () => {
 
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    if (!user) return setShowAuthModal(true);
 
     try {
 
       await createReviews({ productId: id,rating,comment });
       setComment("");
       setRating(5);
-      fetchReviews();
 
-      Swal.fire({
-        icon: "success",
-        title: "Review added 🎉",
-        timer: 1000,
-        showConfirmButton: false,
-      });
+      const res = await getProductReviews(id);
+      setReviews(res?.reviews || res || []);
 
     } catch (error) {
       Swal.fire("Error","Failed to add review","error");

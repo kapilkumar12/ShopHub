@@ -1,17 +1,17 @@
-import { createContext, useContext, useState } from "react";
+import { createContext,useContext,useState } from "react";
 import API from "../services/api";
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  const [cartCount, setCartCount] = useState(0);
+  const [cartCount,setCartCount] = useState(0);
 
   ////////////////////////////////////////////////////////////////
   // 🔥 CALCULATE COUNT FROM ITEMS
   ////////////////////////////////////////////////////////////////
   const calculateCount = (items) => {
     return items.reduce(
-      (acc, item) => acc + item.quantity,
+      (acc,item) => acc + item.quantity,
       0
     );
   };
@@ -35,10 +35,12 @@ export const CartProvider = ({ children }) => {
   ////////////////////////////////////////////////////////////////
   // 🔥 LIVE UPDATE (ARRAY BASED)
   ////////////////////////////////////////////////////////////////
-  const updateCartCount = (items) => {
-    if (!Array.isArray(items)) return; // safety
-
-    setCartCount(calculateCount(items));
+  const updateCartCount = (data) => {
+    if (Array.isArray(data)) {
+      setCartCount(calculateCount(data));
+    } else if (typeof data === "number") {
+      setCartCount((prev) => prev + data);
+    }
   };
 
   return (

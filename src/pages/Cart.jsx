@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect,useState } from "react";
 import {
   getCart,
   updateCartItem,
@@ -12,16 +12,16 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 
 export default function Cart() {
-  const [cart, setCart] = useState([]);
-  const [summary, setSummary] = useState({
+  const [cart,setCart] = useState([]);
+  const [summary,setSummary] = useState({
     subtotal: 0,
     gst: 0,
     total: 0,
   });
-  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [relatedProducts,setRelatedProducts] = useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [loadingId, setLoadingId] = useState(null);
+  const [loading,setLoading] = useState(true);
+  const [loadingId,setLoadingId] = useState(null);
 
   const { user } = useAuth();
   const { updateCartCount } = useCart();
@@ -33,28 +33,36 @@ export default function Cart() {
   ////////////////////////////////////////////////////////////////
   useEffect(() => {
     fetchCart();
-  }, []);
+  },[]);
 
-  const fetchCart = async () => {
-    try {
-      const res = await getCart();
+const fetchCart = async () => {
+  try {
+    const res = await getCart();
+    const items = res?.items || [];
 
-      const items = res?.items || [];
-      setCart(items);
+    const subtotal = items.reduce(
+      (a, i) => a + i.pricing.sellingPrice * i.quantity,
+      0
+    );
 
-      updateSummary(items);
-      updateCartCount(items); // 🔥 navbar sync
+    const gst = items.reduce(
+      (a, i) => a + i.pricing.gstAmount * i.quantity,
+      0
+    );
 
-      if (items.length > 0) {
-        fetchRelated(items[0]?.product?._id);
-      }
+    setCart(items);
+    setSummary({
+      subtotal,
+      gst,
+      total: subtotal + gst,
+    });
 
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    updateCartCount(items);
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   ////////////////////////////////////////////////////////////////
   // 🔥 RELATED PRODUCTS
@@ -92,13 +100,13 @@ export default function Cart() {
   ////////////////////////////////////////////////////////////////
   // 🔥 QUANTITY UPDATE (LIVE)
   ////////////////////////////////////////////////////////////////
-  const handleQuantity = async (productId, quantity) => {
+  const handleQuantity = async (productId,quantity) => {
     if (quantity < 1) return;
 
     try {
       setLoadingId(productId);
 
-      await updateCartItem(productId, quantity);
+      await updateCartItem(productId,quantity);
 
       setCart((prev) => {
         const updated = prev.map((item) => {
@@ -114,6 +122,7 @@ export default function Cart() {
 
         updateSummary(updated);
         updateCartCount(updated);
+        await fetchCartCount();
 
         return updated;
       });
@@ -222,7 +231,7 @@ export default function Cart() {
 
                   <div className="text-sm mt-1">
                     <span className="line-through text-gray-400 mr-2">
-                     ₹{Math.round(price.mrp || 0)}
+                      ₹{Math.round(price.mrp || 0)}
                     </span>
 
                     <span className="text-red-600 font-bold">
@@ -249,7 +258,7 @@ export default function Cart() {
                 <button
                   disabled={loadingId === p._id}
                   onClick={() =>
-                    handleQuantity(p._id, item.quantity - 1)
+                    handleQuantity(p._id,item.quantity - 1)
                   }
                   className="px-3 py-1 bg-gray-200 rounded"
                 >
@@ -261,7 +270,7 @@ export default function Cart() {
                 <button
                   disabled={loadingId === p._id}
                   onClick={() =>
-                    handleQuantity(p._id, item.quantity + 1)
+                    handleQuantity(p._id,item.quantity + 1)
                   }
                   className="px-3 py-1 bg-gray-200 rounded"
                 >

@@ -22,22 +22,24 @@ export default function Wishlist() {
   ////////////////////////////////////////////////////////////////
   // FETCH WISHLIST
   ////////////////////////////////////////////////////////////////
-  useEffect(() => {
-    if (!user) return;
 
-    fetchWishlist();
-  },[user]);
+useEffect(() => {
+  if (!user) return;
 
-  const fetchWishlist = async () => {
-    try {
-      const res = await getWishlist();
-      setProducts(res?.products || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  let ignore = false;
+
+  const load = async () => {
+    const res = await getWishlist();
+    if (!ignore) setProducts(res?.products || []);
+    setLoading(false);
   };
+
+  load();
+
+  return () => {
+    ignore = true;
+  };
+}, [user]);
 
   ////////////////////////////////////////////////////////////////
   // REMOVE FROM WISHLIST

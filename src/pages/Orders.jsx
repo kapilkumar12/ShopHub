@@ -1,28 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect,useState } from "react";
 import { getOrders } from "../services/order";
 import { useNavigate } from "react-router-dom";
 
 export default function Orders() {
 
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [orders,setOrders] = useState([]);
+  const [loading,setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
 
-  const fetchOrders = async () => {
-    try {
-      const res = await getOrders();
-      setOrders(res.orders || []);
+useEffect(() => {
+  let active = true;
 
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+  const load = async () => {
+    const res = await getOrders();
+    if (active) setOrders(res.orders || []);
+    setLoading(false);
   };
+
+  load();
+
+  return () => {
+    active = false;
+  };
+}, []);
 
   // 🎨 status color
   const getStatusColor = (status) => {
@@ -82,9 +83,9 @@ export default function Orders() {
 
             {/* Top Row */}
             <div className="flex justify-between items-center mb-3">
-               <div>
-                <img src={order.items?.[0]?.productId?.images?.[0]?.url} alt="Product image" className="w-16 h-16 object-cover rounded" loading="lazy"/>
-                </div> 
+              <div>
+                <img src={order.items?.[0]?.productId?.images?.[0]?.url} alt="Product image" className="w-16 h-16 object-cover rounded" loading="lazy" />
+              </div>
               <div>
                 <p className="text-sm text-gray-500">
                   Order ID: {order._id.slice(-6)}
@@ -92,14 +93,14 @@ export default function Orders() {
                 <p className="text-sm text-gray-400">
                   {new Date(order.createdAt).toLocaleDateString()}
                 </p>
-                </div>
-               
-                <p className="text-sm text-gray-400">
-                 Payment Status : {order.paymentStatus}
-                </p>
-                <p className="text-sm text-gray-400">
-                 Payment Methood : {order.paymentMethod}
-                </p>
+              </div>
+
+              <p className="text-sm text-gray-400">
+                Payment Status : {order.paymentStatus}
+              </p>
+              <p className="text-sm text-gray-400">
+                Payment Methood : {order.paymentMethod}
+              </p>
 
               <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
                 {order.status}
@@ -108,7 +109,7 @@ export default function Orders() {
 
             {/* Items Preview */}
             <div className="space-y-2">
-              {order.items.slice(0, 2).map((item, index) => (
+              {order.items.slice(0,2).map((item,index) => (
                 <div key={index} className="flex justify-between text-sm">
                   <span>
                     {item.name} × {item.quantity}

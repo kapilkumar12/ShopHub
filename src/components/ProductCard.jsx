@@ -70,7 +70,7 @@ export default function ProductCard({ product }) {
       });
 
       // 🔥 Instant UI update
-      updateCartCount(1);
+      // updateCartCount(1);
 
       // 🔥 Sync with backend (important)
       await fetchCartCount();
