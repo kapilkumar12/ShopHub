@@ -34,8 +34,8 @@ API.interceptors.response.use(
     // ❌ skip auth routes
     const isAuthRoute =
       originalRequest?.url?.includes("/auth/login") ||
-      originalRequest?.url?.includes("/auth/refresh") ||
-      originalRequest?.url?.includes("/auth/me");
+      originalRequest?.url?.includes("/auth/refresh") 
+      // originalRequest?.url?.includes("/auth/me");
 
     if (
       error.response?.status === 401 &&

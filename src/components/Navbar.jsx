@@ -18,8 +18,8 @@ export default function Navbar() {
   const [otpEmail,setOtpEmail] = useState("");
   const [type,setType] = useState("login");
 
-  const { search,setSearch, fetchUser } = useSearch();
-  const { user,setUser } = useAuth();
+  const { search,setSearch } = useSearch();
+  const { user,setUser,fetchUser } = useAuth();
   const { cartCount,fetchCartCount } = useCart();
   const { wishlistCount,fetchWishlistCount } = useWishlist();
   const navigate = useNavigate();
@@ -111,8 +111,12 @@ export default function Navbar() {
       setUser(null);
       setSearch("");
       setShowDropdown(false);
-      fetchCartCount();
-      fetchWishlistCount();
+
+      await Promise.all([
+        fetchCartCount(),
+        fetchWishlistCount(),
+      ]);
+
       navigate("/");
 
     } catch (err) {
@@ -121,21 +125,15 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-
-    if (user) {
-      fetchCartCount();
-      fetchWishlistCount();// login
-    } else {
-      fetchCartCount();
-      fetchWishlistCount(); // API already 0 return karegi
-    }
+    fetchCartCount();
+    fetchWishlistCount();
   },[user]);
 
   useEffect(() => {
-  if (!user && localStorage.getItem("accessToken")) {
-    fetchUser();
-  }
-}, []);
+    if (!user && localStorage.getItem("accessToken")) {
+      fetchUser();
+    }
+  },[]);
 
   return (
     <>
