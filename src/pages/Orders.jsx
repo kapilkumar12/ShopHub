@@ -74,7 +74,6 @@ useEffect(() => {
           <div
             key={order._id}
             className="bg-white p-5 rounded-2xl shadow hover:shadow-lg transition cursor-pointer"
-            onClick={() => navigate(`/orders/${order._id}`)}
           >
 
             {/* Top Row */}
@@ -128,7 +127,7 @@ useEffect(() => {
                 {`₹${Math.floor(order.totalPrice)}`}
               </h3>
 
-              <button className="text-blue-600 text-sm hover:underline">
+              <button className="text-blue-600 text-sm hover:underline"  onClick={() => navigate(`/orders/${order._id}`)}>
                 View Details →
               </button>
             </div>
