@@ -58,7 +58,7 @@ export default function Home() {
         {heroLoading ? (
           <HeroSkeleton />
         ) : (
-          <HeroSlider />
+          <Hero />
         )}
 
         <div>
