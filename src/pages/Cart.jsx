@@ -24,7 +24,7 @@ export default function Cart() {
   const [loadingId,setLoadingId] = useState(null);
 
   const { user } = useAuth();
-  const { updateCartCount } = useCart();
+  const { updateCartCount,fetchCartCount } = useCart();
 
   const navigate = useNavigate();
 
@@ -35,34 +35,34 @@ export default function Cart() {
     fetchCart();
   },[]);
 
-const fetchCart = async () => {
-  try {
-    const res = await getCart();
-    const items = res?.items || [];
+  const fetchCart = async () => {
+    try {
+      const res = await getCart();
+      const items = res?.items || [];
 
-    const subtotal = items.reduce(
-      (a, i) => a + i.pricing.sellingPrice * i.quantity,
-      0
-    );
+      const subtotal = items.reduce(
+        (a,i) => a + i.pricing.sellingPrice * i.quantity,
+        0
+      );
 
-    const gst = items.reduce(
-      (a, i) => a + i.pricing.gstAmount * i.quantity,
-      0
-    );
+      const gst = items.reduce(
+        (a,i) => a + i.pricing.gstAmount * i.quantity,
+        0
+      );
 
-    setCart(items);
-    setSummary({
-      subtotal,
-      gst,
-      total: subtotal + gst,
-    });
+      setCart(items);
+      setSummary({
+        subtotal,
+        gst,
+        total: subtotal + gst,
+      });
 
-    updateCartCount(items);
+      updateCartCount(items);
 
-  } finally {
-    setLoading(false);
-  }
-};
+    } finally {
+      setLoading(false);
+    }
+  };
 
   ////////////////////////////////////////////////////////////////
   // 🔥 RELATED PRODUCTS
@@ -122,10 +122,11 @@ const fetchCart = async () => {
 
         updateSummary(updated);
         updateCartCount(updated);
-        await fetchCartCount();
 
         return updated;
       });
+
+      await fetchCartCount();
 
     } catch (err) {
       console.error(err);
