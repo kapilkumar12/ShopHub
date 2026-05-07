@@ -4,12 +4,14 @@ import API from "../services/api";
 import { useEffect,useState } from "react";
 import { getProducts,getTrendingProducts } from "../services/product"
 import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
+import HeroSkeleton from "../skeletons/HeroSkeleton";
 
 export default function Home() {
 
   const [products,setProducts] = useState([]);
   const [trendingProducts,setTrendingProducts] = useState([]);
   const [loading,setLoading] = useState(true);
+  const [heroLoading,setHeroLoading] = useState(true);
 
   useEffect(() => {
     fetchProducts()
@@ -41,11 +43,23 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHeroLoading(false);
+    },1200);
+
+    return () => clearTimeout(timer);
+  },[]);
+
   return (
     <>
 
       <div className="p-6 space-y-8">
-        <Hero />
+        {heroLoading ? (
+          <HeroSkeleton />
+        ) : (
+          <HeroSlider />
+        )}
 
         <div>
           {loading ? (
